@@ -4,11 +4,15 @@ import {
   Invoice, CartItem, StoreSettings,
 } from '@/types';
 import { ThemeSettings, AppPreferences, DEFAULT_THEME, DEFAULT_PREFS, T } from './customization';
-import { sha256, DEFAULT_ADMIN_PASSWORD_HASH } from '@/lib/crypto';
+import {
+  hashPassword, verifyPassword, isDefaultPasswordHash,
+  DEFAULT_PASSWORD_SENTINEL, DEFAULT_PASSWORD_PLAINTEXT,
+  type PasswordHash,
+} from '@/lib/crypto';
 import { importSchema } from '@/lib/importSchema';
 
-// Stored shape — password is ALWAYS a SHA-256 hex digest, never plaintext.
-interface StoredAdminCreds { username: string; passwordHash: string; }
+// Stored shape — password is ALWAYS a salted PBKDF2 hash, never plaintext.
+interface StoredAdminCreds { username: string; passwordHash: PasswordHash; }
 
 interface StoreState {
   products: Product[];
@@ -105,24 +109,23 @@ const defaultState = {
   theme: DEFAULT_THEME,
   prefs: DEFAULT_PREFS,
   categories: DEFAULT_CATEGORIES,
-  // Default password is 'admin' — stored as its SHA-256 hash, never plaintext.
-  adminCreds: { username: 'admin', passwordHash: DEFAULT_ADMIN_PASSWORD_HASH } as StoredAdminCreds,
+  // Default password is 'admin' — represented by a sentinel marker so no real
+  // hash for the default password is ever stored. The user is forced to set a
+  // proper PBKDF2 hash on first password change.
+  adminCreds: { username: 'admin', passwordHash: DEFAULT_PASSWORD_SENTINEL } as StoredAdminCreds,
 };
 
 const StoreContext = createContext<StoreState | null>(null);
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 function migrateCreds(parsed: any): StoredAdminCreds {
-  // Migrate legacy plaintext creds: { username, password } -> { username, passwordHash }
   const c = parsed?.adminCreds;
-  if (c && typeof c.passwordHash === 'string') {
-    return { username: String(c.username || 'admin'), passwordHash: c.passwordHash };
+  if (c && c.passwordHash && typeof c.passwordHash === 'object' && c.passwordHash.algo === 'pbkdf2-sha256') {
+    return { username: String(c.username || 'admin'), passwordHash: c.passwordHash as PasswordHash };
   }
-  if (c && typeof c.password === 'string') {
-    // Legacy users had plaintext stored — fall back to default hash and force change.
-    return { username: String(c.username || 'admin'), passwordHash: DEFAULT_ADMIN_PASSWORD_HASH };
-  }
-  return defaultState.adminCreds;
+  // Legacy plaintext or legacy SHA-256 string hash — fall back to default
+  // sentinel and force the user to set a new password.
+  return { username: String(c?.username || 'admin'), passwordHash: DEFAULT_PASSWORD_SENTINEL };
 }
 
 function loadState() {
@@ -156,11 +159,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [adminCreds, setAdminCreds] = useState<StoredAdminCreds>(initial.adminCreds);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Persist (note: only the password HASH is ever written, never plaintext)
+  // Persist (note: only the salted PBKDF2 password HASH is ever written, never plaintext)
   useEffect(() => {
     const data = { products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds };
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* quota or privacy mode */ }
   }, [products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds]);
+
+  // Idle session timeout — auto-logout admin after 15 minutes of no activity.
+  // Also clear the sessionStorage gate on tab close so admin state never
+  // silently persists across sessions.
+  useEffect(() => {
+    if (!isAdmin) return;
+    sessionStorage.setItem('pt-admin-session', '1');
+    const TIMEOUT_MS = 15 * 60 * 1000;
+    let timer: number;
+    const reset = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setIsAdmin(false), TIMEOUT_MS);
+    };
+    const events = ['mousemove', 'keydown', 'click', 'touchstart'] as const;
+    events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    reset();
+    return () => {
+      window.clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, reset));
+      sessionStorage.removeItem('pt-admin-session');
+    };
+  }, [isAdmin]);
 
   // Apply theme to CSS variables
   useEffect(() => {
@@ -196,7 +221,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     products, customers, vendors, purchases, ledger, invoices, cart, settings,
     theme, prefs, categories,
     adminUsername: adminCreds.username,
-    isDefaultAdminPassword: adminCreds.passwordHash === DEFAULT_ADMIN_PASSWORD_HASH,
+    isDefaultAdminPassword: isDefaultPasswordHash(adminCreds.passwordHash),
     isAdmin, t,
     setProducts,
     upsertProduct: upsert(setProducts),
@@ -242,16 +267,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updatePrefs: (s) => setPrefs((prev) => ({ ...prev, ...s })),
     setCategories: (c) => setCategoriesState(c),
     updateAdminCreds: async (c) => {
-      const passwordHash = await sha256(c.password);
+      const passwordHash = await hashPassword(c.password);
       setAdminCreds({ username: c.username, passwordHash });
     },
     loginAdmin: async (u, p) => {
-      const hash = await sha256(p);
-      if (u === adminCreds.username && hash === adminCreds.passwordHash) {
-        setIsAdmin(true);
-        return true;
+      if (u !== adminCreds.username) return false;
+      // First-run: default sentinel — accept the literal default password once.
+      if (isDefaultPasswordHash(adminCreds.passwordHash)) {
+        if (p === DEFAULT_PASSWORD_PLAINTEXT) { setIsAdmin(true); return true; }
+        return false;
       }
-      return false;
+      const ok = await verifyPassword(p, adminCreds.passwordHash);
+      if (ok) setIsAdmin(true);
+      return ok;
     },
     logoutAdmin: () => setIsAdmin(false),
 
