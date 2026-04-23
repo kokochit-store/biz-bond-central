@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useStore, uid } from '@/store/StoreContext';
-import { Product } from '@/types';
+import { Product, Vendor } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Upload, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarcodeInput } from '@/components/BarcodeInput';
 import { SortableList } from '@/components/SortableList';
 import { ImageUpload } from '@/components/ImageUpload';
+import { parseCsv, mapCsvToProducts } from '@/lib/csvImport';
 
 const empty: Product = {
   id: '', name: '', category: '', price: 0, cost: 0, stock: 0, reorderLevel: 0,
@@ -17,9 +18,109 @@ const empty: Product = {
 };
 
 export function ItemsAdmin() {
-  const { products, vendors, categories, upsertProduct, deleteProduct, setProducts, formatPrice } = useStore();
+  const {
+    products, vendors, categories,
+    upsertProduct, deleteProduct, setProducts,
+    setCategories, upsertVendor,
+    formatPrice,
+  } = useStore();
   const [form, setForm] = useState<Product>(empty);
   const [search, setSearch] = useState('');
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleCsv = async (file: File) => {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const rows = parseCsv(text);
+      const result = mapCsvToProducts(rows, {
+        existingProducts: products,
+        existingCategories: categories,
+        defaultStock: 10,
+      });
+      if (!result.products.length) {
+        toast.error('No new items found in CSV');
+        return;
+      }
+
+      // Add new vendors first
+      const vendorByName = new Map(vendors.map((v) => [v.name.toLowerCase(), v]));
+      for (const name of result.newVendorNames) {
+        if (!vendorByName.has(name.toLowerCase())) {
+          const v: Vendor = { id: uid(), name };
+          vendorByName.set(name.toLowerCase(), v);
+          upsertVendor(v);
+        }
+      }
+
+      // Resolve vendorId per product by re-walking source rows in order
+      const headers = rows[0];
+      const vIdx = headers.findIndex((h) =>
+        ['preferred vendor', 'vendor', 'supplier'].includes(h.trim().toLowerCase())
+      );
+      const finalProducts = [...result.products];
+      if (vIdx !== -1) {
+        const nameCol = headers.findIndex((h) =>
+          ['item', 'name', 'item name', 'product', 'product name'].includes(h.trim().toLowerCase())
+        );
+        const activeCol = headers.findIndex((h) =>
+          ['active status', 'active', 'status'].includes(h.trim().toLowerCase())
+        );
+        const existingNames = new Set(products.map((p) => p.name.toLowerCase()));
+        const seen = new Set<string>();
+        let pi = 0;
+        for (let i = 1; i < rows.length && pi < finalProducts.length; i++) {
+          const r = rows[i];
+          const nm = (r[nameCol] || '').trim();
+          if (!nm) continue;
+          if (activeCol !== -1) {
+            const st = (r[activeCol] || '').trim().toLowerCase();
+            if (st && st !== 'active') continue;
+          }
+          const lname = nm.toLowerCase();
+          if (existingNames.has(lname) || seen.has(lname)) continue;
+          seen.add(lname);
+          const vname = (r[vIdx] || '').trim().toLowerCase();
+          const vid = vname ? vendorByName.get(vname)?.id : undefined;
+          finalProducts[pi] = { ...finalProducts[pi], vendorId: vid };
+          pi++;
+        }
+      }
+
+      // Add new categories
+      const catSet = new Set(categories);
+      result.newCategories.forEach((c) => catSet.add(c));
+      setCategories(Array.from(catSet));
+
+      // Bulk add products
+      setProducts([...products, ...finalProducts]);
+
+      toast.success(
+        `Imported ${finalProducts.length} items` +
+          (result.newVendorNames.length ? ` · ${result.newVendorNames.length} vendors` : '') +
+          (result.newCategories.length ? ` · ${result.newCategories.length} categories` : '') +
+          (result.skipped ? ` · ${result.skipped} skipped` : '')
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'CSV import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const loadSample = async () => {
+    setImporting(true);
+    try {
+      const res = await fetch('/sample-items.csv');
+      if (!res.ok) throw new Error('Sample file not found');
+      const blob = await res.blob();
+      await handleCsv(new File([blob], 'sample-items.csv', { type: 'text/csv' }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to load sample');
+      setImporting(false);
+    }
+  };
 
   const set = <K extends keyof Product>(k: K, v: Product[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -82,9 +183,48 @@ export function ItemsAdmin() {
       </Card>
 
       <Card className="p-4">
-        <div className="flex items-center justify-between mb-3 gap-2">
+        <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
           <h4 className="font-semibold">All Items ({products.length})</h4>
-          <Input placeholder="Search items..." className="max-w-xs" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleCsv(f);
+                e.target.value = '';
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={importing}
+              onClick={() => fileRef.current?.click()}
+            >
+              <Upload className="w-3.5 h-3.5 mr-1" />
+              {importing ? 'Importing…' : 'Import CSV'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={importing}
+              onClick={loadSample}
+              title="Load bundled 3,952 sample items"
+            >
+              <FileDown className="w-3.5 h-3.5 mr-1" />
+              Load Sample (3,952)
+            </Button>
+            <Input
+              placeholder="Search items..."
+              className="max-w-xs"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
         {search ? (
           <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
