@@ -159,11 +159,33 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [adminCreds, setAdminCreds] = useState<StoredAdminCreds>(initial.adminCreds);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Persist (note: only the password HASH is ever written, never plaintext)
+  // Persist (note: only the salted PBKDF2 password HASH is ever written, never plaintext)
   useEffect(() => {
     const data = { products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds };
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* quota or privacy mode */ }
   }, [products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds]);
+
+  // Idle session timeout — auto-logout admin after 15 minutes of no activity.
+  // Also clear the sessionStorage gate on tab close so admin state never
+  // silently persists across sessions.
+  useEffect(() => {
+    if (!isAdmin) return;
+    sessionStorage.setItem('pt-admin-session', '1');
+    const TIMEOUT_MS = 15 * 60 * 1000;
+    let timer: number;
+    const reset = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setIsAdmin(false), TIMEOUT_MS);
+    };
+    const events = ['mousemove', 'keydown', 'click', 'touchstart'] as const;
+    events.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    reset();
+    return () => {
+      window.clearTimeout(timer);
+      events.forEach((e) => window.removeEventListener(e, reset));
+      sessionStorage.removeItem('pt-admin-session');
+    };
+  }, [isAdmin]);
 
   // Apply theme to CSS variables
   useEffect(() => {
