@@ -9,6 +9,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarcodeInput } from '@/components/BarcodeInput';
 import { SortableList } from '@/components/SortableList';
+import { ImageUpload } from '@/components/ImageUpload';
 
 const empty: Product = {
   id: '', name: '', category: '', price: 0, cost: 0, stock: 0, reorderLevel: 0,
