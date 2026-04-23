@@ -109,24 +109,23 @@ const defaultState = {
   theme: DEFAULT_THEME,
   prefs: DEFAULT_PREFS,
   categories: DEFAULT_CATEGORIES,
-  // Default password is 'admin' — stored as its SHA-256 hash, never plaintext.
-  adminCreds: { username: 'admin', passwordHash: DEFAULT_ADMIN_PASSWORD_HASH } as StoredAdminCreds,
+  // Default password is 'admin' — represented by a sentinel marker so no real
+  // hash for the default password is ever stored. The user is forced to set a
+  // proper PBKDF2 hash on first password change.
+  adminCreds: { username: 'admin', passwordHash: DEFAULT_PASSWORD_SENTINEL } as StoredAdminCreds,
 };
 
 const StoreContext = createContext<StoreState | null>(null);
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 function migrateCreds(parsed: any): StoredAdminCreds {
-  // Migrate legacy plaintext creds: { username, password } -> { username, passwordHash }
   const c = parsed?.adminCreds;
-  if (c && typeof c.passwordHash === 'string') {
-    return { username: String(c.username || 'admin'), passwordHash: c.passwordHash };
+  if (c && c.passwordHash && typeof c.passwordHash === 'object' && c.passwordHash.algo === 'pbkdf2-sha256') {
+    return { username: String(c.username || 'admin'), passwordHash: c.passwordHash as PasswordHash };
   }
-  if (c && typeof c.password === 'string') {
-    // Legacy users had plaintext stored — fall back to default hash and force change.
-    return { username: String(c.username || 'admin'), passwordHash: DEFAULT_ADMIN_PASSWORD_HASH };
-  }
-  return defaultState.adminCreds;
+  // Legacy plaintext or legacy SHA-256 string hash — fall back to default
+  // sentinel and force the user to set a new password.
+  return { username: String(c?.username || 'admin'), passwordHash: DEFAULT_PASSWORD_SENTINEL };
 }
 
 function loadState() {
