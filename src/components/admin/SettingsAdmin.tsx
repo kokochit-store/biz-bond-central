@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { AlertTriangle } from 'lucide-react';
+import { ImageUpload } from '@/components/ImageUpload';
 
 export function SettingsAdmin() {
   const { settings, updateSettings, adminUsername, isDefaultAdminPassword, updateAdminCreds, logoutAdmin } = useStore();
@@ -34,8 +35,14 @@ export function SettingsAdmin() {
         <form onSubmit={saveSettings} className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Input placeholder="Store Name" value={s.storeName} onChange={(e) => setS({ ...s, storeName: e.target.value })} />
           <Input placeholder="Store Note" value={s.storeNote} onChange={(e) => setS({ ...s, storeNote: e.target.value })} />
-          <Input placeholder="Hero Image URL" value={s.heroImageUrl || ''} onChange={(e) => setS({ ...s, heroImageUrl: e.target.value })} className="md:col-span-2" />
-          <Input placeholder="Logo URL" value={s.logoImageUrl || ''} onChange={(e) => setS({ ...s, logoImageUrl: e.target.value })} className="md:col-span-2" />
+          <div className="md:col-span-2 space-y-1">
+            <label className="text-xs text-muted-foreground">Hero Image</label>
+            <ImageUpload value={s.heroImageUrl || ''} onChange={(v) => setS({ ...s, heroImageUrl: v })} label="Hero ပုံ ထည့်ရန်" aspect="wide" maxDim={1600} />
+          </div>
+          <div className="md:col-span-2 space-y-1">
+            <label className="text-xs text-muted-foreground">Logo</label>
+            <ImageUpload value={s.logoImageUrl || ''} onChange={(v) => setS({ ...s, logoImageUrl: v })} label="Logo ထည့်ရန်" aspect="square" maxDim={400} />
+          </div>
           <div className="md:col-span-2">
             <Button type="submit">Save Store Settings</Button>
           </div>
