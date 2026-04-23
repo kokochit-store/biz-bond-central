@@ -221,7 +221,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     products, customers, vendors, purchases, ledger, invoices, cart, settings,
     theme, prefs, categories,
     adminUsername: adminCreds.username,
-    isDefaultAdminPassword: adminCreds.passwordHash === DEFAULT_ADMIN_PASSWORD_HASH,
+    isDefaultAdminPassword: isDefaultPasswordHash(adminCreds.passwordHash),
     isAdmin, t,
     setProducts,
     upsertProduct: upsert(setProducts),
