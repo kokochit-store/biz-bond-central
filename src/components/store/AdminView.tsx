@@ -55,6 +55,10 @@ export function AdminView() {
           <Input type="password" placeholder="Password" value={p} onChange={(e) => setP(e.target.value)} required maxLength={200} autoComplete="current-password" />
           <Button type="submit" className="w-full" disabled={busy}>{busy ? 'Checking…' : 'Admin Login'}</Button>
         </form>
+        <p className="mt-4 flex gap-2 items-start text-xs text-muted-foreground border-t pt-3">
+          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+          <span>This admin panel runs entirely in your browser. Only use it on a trusted, private device — anyone with access to this device's storage can tamper with admin data.</span>
+        </p>
       </Card>
     );
   }
