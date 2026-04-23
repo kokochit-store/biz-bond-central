@@ -17,15 +17,17 @@ const fromHex = (hex: string) => {
 };
 
 async function pbkdf2(password: string, salt: Uint8Array): Promise<string> {
+  const pwBytes = new TextEncoder().encode(password);
   const key = await crypto.subtle.importKey(
     'raw',
-    new TextEncoder().encode(password),
+    pwBytes.buffer.slice(pwBytes.byteOffset, pwBytes.byteOffset + pwBytes.byteLength) as ArrayBuffer,
     'PBKDF2',
     false,
     ['deriveBits'],
   );
+  const saltBuf = salt.buffer.slice(salt.byteOffset, salt.byteOffset + salt.byteLength) as ArrayBuffer;
   const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', hash: 'SHA-256', salt, iterations: PBKDF2_ITERATIONS },
+    { name: 'PBKDF2', hash: 'SHA-256', salt: saltBuf, iterations: PBKDF2_ITERATIONS },
     key,
     KEY_BITS,
   );
