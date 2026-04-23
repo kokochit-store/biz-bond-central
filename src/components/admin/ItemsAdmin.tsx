@@ -1,15 +1,16 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useStore, uid } from '@/store/StoreContext';
-import { Product } from '@/types';
+import { Product, Vendor } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Upload, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarcodeInput } from '@/components/BarcodeInput';
 import { SortableList } from '@/components/SortableList';
 import { ImageUpload } from '@/components/ImageUpload';
+import { parseCsv, mapCsvToProducts } from '@/lib/csvImport';
 
 const empty: Product = {
   id: '', name: '', category: '', price: 0, cost: 0, stock: 0, reorderLevel: 0,
