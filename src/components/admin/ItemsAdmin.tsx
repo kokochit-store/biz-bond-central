@@ -69,7 +69,10 @@ export function ItemsAdmin() {
             {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
           </select>
           <Input placeholder="Location (Shelf A-3)" value={form.location || ''} onChange={(e) => set('location', e.target.value)} />
-          <Input placeholder="Image URL" value={form.imageUrl || ''} onChange={(e) => set('imageUrl', e.target.value)} className="md:col-span-2" />
+          <div className="md:col-span-2 space-y-1">
+            <label className="text-xs text-muted-foreground">Item Photo</label>
+            <ImageUpload value={form.imageUrl || ''} onChange={(v) => set('imageUrl', v)} label="ပစ္စည်းပုံ ထည့်ရန်" aspect="square" />
+          </div>
           <Textarea placeholder="Description" value={form.description || ''} onChange={(e) => set('description', e.target.value)} className="md:col-span-2" rows={2} />
           <div className="md:col-span-2 flex gap-2">
             <Button type="submit">{form.id ? 'Update' : 'Save'} Item</Button>
