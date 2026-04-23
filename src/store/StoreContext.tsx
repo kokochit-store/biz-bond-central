@@ -4,11 +4,15 @@ import {
   Invoice, CartItem, StoreSettings,
 } from '@/types';
 import { ThemeSettings, AppPreferences, DEFAULT_THEME, DEFAULT_PREFS, T } from './customization';
-import { sha256, DEFAULT_ADMIN_PASSWORD_HASH } from '@/lib/crypto';
+import {
+  hashPassword, verifyPassword, isDefaultPasswordHash,
+  DEFAULT_PASSWORD_SENTINEL, DEFAULT_PASSWORD_PLAINTEXT,
+  type PasswordHash,
+} from '@/lib/crypto';
 import { importSchema } from '@/lib/importSchema';
 
-// Stored shape — password is ALWAYS a SHA-256 hex digest, never plaintext.
-interface StoredAdminCreds { username: string; passwordHash: string; }
+// Stored shape — password is ALWAYS a salted PBKDF2 hash, never plaintext.
+interface StoredAdminCreds { username: string; passwordHash: PasswordHash; }
 
 interface StoreState {
   products: Product[];
