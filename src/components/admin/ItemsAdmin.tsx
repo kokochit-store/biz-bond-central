@@ -183,9 +183,48 @@ export function ItemsAdmin() {
       </Card>
 
       <Card className="p-4">
-        <div className="flex items-center justify-between mb-3 gap-2">
+        <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
           <h4 className="font-semibold">All Items ({products.length})</h4>
-          <Input placeholder="Search items..." className="max-w-xs" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleCsv(f);
+                e.target.value = '';
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={importing}
+              onClick={() => fileRef.current?.click()}
+            >
+              <Upload className="w-3.5 h-3.5 mr-1" />
+              {importing ? 'Importing…' : 'Import CSV'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={importing}
+              onClick={loadSample}
+              title="Load bundled 3,952 sample items"
+            >
+              <FileDown className="w-3.5 h-3.5 mr-1" />
+              Load Sample (3,952)
+            </Button>
+            <Input
+              placeholder="Search items..."
+              className="max-w-xs"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </div>
         {search ? (
           <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
