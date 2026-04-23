@@ -267,16 +267,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     updatePrefs: (s) => setPrefs((prev) => ({ ...prev, ...s })),
     setCategories: (c) => setCategoriesState(c),
     updateAdminCreds: async (c) => {
-      const passwordHash = await sha256(c.password);
+      const passwordHash = await hashPassword(c.password);
       setAdminCreds({ username: c.username, passwordHash });
     },
     loginAdmin: async (u, p) => {
-      const hash = await sha256(p);
-      if (u === adminCreds.username && hash === adminCreds.passwordHash) {
-        setIsAdmin(true);
-        return true;
+      if (u !== adminCreds.username) return false;
+      // First-run: default sentinel — accept the literal default password once.
+      if (isDefaultPasswordHash(adminCreds.passwordHash)) {
+        if (p === DEFAULT_PASSWORD_PLAINTEXT) { setIsAdmin(true); return true; }
+        return false;
       }
-      return false;
+      const ok = await verifyPassword(p, adminCreds.passwordHash);
+      if (ok) setIsAdmin(true);
+      return ok;
     },
     logoutAdmin: () => setIsAdmin(false),
 
