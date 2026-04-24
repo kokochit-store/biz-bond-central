@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+const optionalText = (max: number) => z.string().max(max).nullish().transform((value) => value ?? undefined);
+const numericValue = (min: number, max: number) => z.coerce.number().finite().min(min).max(max);
+
 // Strict schema for backup imports. Anything not matching is rejected.
 // `adminCreds` is intentionally OMITTED — backup files must never be able
 // to overwrite admin login credentials.
@@ -8,23 +11,25 @@ const productSchema = z.object({
   id: z.string().max(64),
   name: z.string().max(200),
   category: z.string().max(100),
-  price: z.number().finite().min(0).max(1e12),
-  cost: z.number().finite().min(0).max(1e12),
-  stock: z.number().finite().min(0).max(1e9),
-  reorderLevel: z.number().finite().min(0).max(1e9),
-  badge: z.string().max(40).optional(),
-  location: z.string().max(120).optional(),
-  description: z.string().max(2000).optional(),
-  imageUrl: z.string().max(2048).optional(),
+  price: numericValue(0, 1e12),
+  cost: numericValue(0, 1e12),
+  stock: numericValue(0, 1e9),
+  reorderLevel: numericValue(0, 1e9),
+  badge: optionalText(40),
+  barcode: optionalText(128),
+  vendorId: optionalText(64),
+  location: optionalText(120),
+  description: optionalText(2000),
+  imageUrl: optionalText(2048),
 });
 
 const customerSchema = z.object({
   id: z.string().max(64),
   name: z.string().max(200),
-  phone: z.string().max(40).optional(),
-  email: z.string().max(200).optional(),
-  address: z.string().max(500).optional(),
-  note: z.string().max(1000).optional(),
+  phone: optionalText(40),
+  email: optionalText(200),
+  address: optionalText(500),
+  note: optionalText(1000),
 }).passthrough();
 
 const vendorSchema = customerSchema;
@@ -34,23 +39,23 @@ const ledgerSchema = z.object({ id: z.string().max(64) }).passthrough();
 const invoiceSchema = z.object({ id: z.string().max(64) }).passthrough();
 
 const settingsSchema = z.object({
-  storeName: z.string().max(200),
-  storeNote: z.string().max(500).optional().default(''),
-  heroImageUrl: z.string().max(2048).optional().default(''),
-  logoImageUrl: z.string().max(2048).optional().default(''),
+  storeName: optionalText(200),
+  storeNote: optionalText(500).default(''),
+  heroImageUrl: optionalText(2048).default(''),
+  logoImageUrl: optionalText(2048).default(''),
 }).partial();
 
 const themeSchema = z.object({
-  primaryHue: z.number().min(0).max(360),
-  primarySat: z.number().min(0).max(100),
-  primaryLight: z.number().min(0).max(100),
-  radius: z.number().min(0).max(48),
-  fontDisplay: z.string().max(80),
-  fontBody: z.string().max(80),
+  primaryHue: numericValue(0, 360),
+  primarySat: numericValue(0, 100),
+  primaryLight: numericValue(0, 100),
+  radius: numericValue(0, 48),
+  fontDisplay: optionalText(80),
+  fontBody: optionalText(80),
 }).partial();
 
 const prefsSchema = z.object({
-  currency: z.string().max(8),
+  currency: optionalText(8),
   currencyPosition: z.enum(['before', 'after']),
   language: z.enum(['my', 'en']),
 }).partial();
