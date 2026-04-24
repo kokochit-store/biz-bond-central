@@ -6,14 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { SortableList } from '@/components/SortableList';
+import { printHtml } from '@/lib/print';
+import { ledgerHtml } from '@/lib/printTemplates';
 
 const empty: LedgerEntry = { id: '', type: 'receivable', name: '', vendorId: '', amount: 0, dueDate: '', note: '' };
 
 export function LedgerAdmin() {
-  const { ledger, vendors, upsertLedger, deleteLedger, reorderLedger, formatPrice } = useStore();
+  const { ledger, vendors, settings, upsertLedger, deleteLedger, reorderLedger, formatPrice } = useStore();
   const [form, setForm] = useState<LedgerEntry>(empty);
 
   const submit = (e: React.FormEvent) => {
@@ -31,12 +33,38 @@ export function LedgerAdmin() {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-4">
-          <p className="text-xs text-muted-foreground">Total Receivable (ရရန်)</p>
-          <p className="text-xl font-bold text-success mt-1">{formatPrice(totalRec)}</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Total Receivable (ရရန်)</p>
+              <p className="text-xl font-bold text-success mt-1">{formatPrice(totalRec)}</p>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={() => printHtml({ title: 'Receivables', bodyHtml: ledgerHtml(ledger, 'receivable', settings, formatPrice) })}
+              title="Print Receivables"
+            >
+              <Printer className="w-4 h-4" />
+            </Button>
+          </div>
         </Card>
         <Card className="p-4">
-          <p className="text-xs text-muted-foreground">Total Payable (ပေးရန်)</p>
-          <p className="text-xl font-bold text-destructive mt-1">{formatPrice(totalPay)}</p>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Total Payable (ပေးရန်)</p>
+              <p className="text-xl font-bold text-destructive mt-1">{formatPrice(totalPay)}</p>
+            </div>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              onClick={() => printHtml({ title: 'Payables', bodyHtml: ledgerHtml(ledger, 'payable', settings, formatPrice) })}
+              title="Print Payables"
+            >
+              <Printer className="w-4 h-4" />
+            </Button>
+          </div>
         </Card>
       </div>
 
