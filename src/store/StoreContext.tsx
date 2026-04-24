@@ -301,7 +301,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       try { parsed = JSON.parse(json); } catch { return { ok: false, error: 'File is not valid JSON.' }; }
       const result = importSchema.safeParse(parsed);
       if (!result.success) {
-        return { ok: false, error: 'Backup file failed validation and was rejected.' };
+        const first = result.error.issues[0];
+        const path = first?.path?.join('.') || 'root';
+        return { ok: false, error: `Backup validation failed at "${path}": ${first?.message || 'unknown error'}` };
       }
       const d = result.data;
       // adminCreds is never accepted from imports — schema strips it.
