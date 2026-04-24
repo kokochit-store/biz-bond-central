@@ -9,6 +9,8 @@ import { Trash2, Minus, Plus, ScanLine } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEffect } from 'react';
 import { BarcodeScannerModal } from '@/components/BarcodeScannerModal';
+import { printHtml } from '@/lib/print';
+import { invoiceReceiptHtml } from '@/lib/printTemplates';
 
 export function CartDrawer() {
   const [open, setOpen] = useState(false);
