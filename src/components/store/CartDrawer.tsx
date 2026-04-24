@@ -12,7 +12,7 @@ import { BarcodeScannerModal } from '@/components/BarcodeScannerModal';
 
 export function CartDrawer() {
   const [open, setOpen] = useState(false);
-  const { cart, updateCartQty, removeFromCart, clearCart, customers, products, addToCart, saveInvoice, formatPrice } = useStore();
+  const { cart, updateCartQty, removeFromCart, clearCart, customers, products, addToCart, saveInvoice, formatPrice, settings } = useStore();
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [paid, setPaid] = useState(0);
