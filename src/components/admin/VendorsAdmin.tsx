@@ -1,19 +1,22 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useStore, uid } from '@/store/StoreContext';
 import { Vendor } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { SortableList } from '@/components/SortableList';
+import { mapCsvToVendors } from '@/lib/csvSimple';
 
 const empty: Vendor = { id: '', name: '', phone: '', note: '' };
 
 export function VendorsAdmin() {
   const { vendors, upsertVendor, deleteVendor, reorderVendors } = useStore();
   const [form, setForm] = useState<Vendor>(empty);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +24,24 @@ export function VendorsAdmin() {
     upsertVendor({ ...form, id: form.id || uid() });
     toast.success(form.id ? 'Vendor updated' : 'Vendor added');
     setForm(empty);
+  };
+
+  const handleCsv = async (file: File) => {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const result = mapCsvToVendors(text, vendors);
+      if (!result.records.length) {
+        toast.error('No new vendors found');
+        return;
+      }
+      result.records.forEach((v) => upsertVendor(v));
+      toast.success(`Imported ${result.records.length} vendors${result.skipped ? ` · ${result.skipped} skipped` : ''}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'CSV import failed');
+    } finally {
+      setImporting(false);
+    }
   };
 
   return (
@@ -39,7 +60,33 @@ export function VendorsAdmin() {
       </Card>
 
       <Card className="p-4">
-        <h4 className="font-semibold mb-3">Vendors ({vendors.length})</h4>
+        <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
+          <h4 className="font-semibold">Vendors ({vendors.length})</h4>
+          <div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleCsv(f);
+                e.target.value = '';
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={importing}
+              onClick={() => fileRef.current?.click()}
+              title="CSV columns: Name, Phone, Note"
+            >
+              <Upload className="w-3.5 h-3.5 mr-1" />
+              {importing ? 'Importing…' : 'Import CSV'}
+            </Button>
+          </div>
+        </div>
         <SortableList
           className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin pr-1"
           items={vendors}

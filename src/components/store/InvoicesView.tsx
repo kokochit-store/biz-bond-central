@@ -1,11 +1,13 @@
 import { useStore } from '@/store/StoreContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Printer, Receipt } from 'lucide-react';
 import { SortableList } from '@/components/SortableList';
+import { printHtml } from '@/lib/print';
+import { invoiceHtml, invoiceReceiptHtml } from '@/lib/printTemplates';
 
 export function InvoicesView() {
-  const { invoices, deleteInvoice, clearInvoices, reorderInvoices, formatPrice } = useStore();
+  const { invoices, deleteInvoice, clearInvoices, reorderInvoices, formatPrice, settings } = useStore();
 
   return (
     <Card className="p-6">
@@ -51,7 +53,28 @@ export function InvoicesView() {
                 ))}
               </div>
               {inv.note && <p className="text-xs italic mt-2 text-muted-foreground">{inv.note}</p>}
-              <div className="mt-3 flex justify-end">
+              <div className="mt-3 flex justify-end gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => printHtml({
+                    title: `Invoice ${inv.id}`,
+                    bodyHtml: invoiceReceiptHtml(inv, settings, formatPrice),
+                    receipt: true,
+                  })}
+                >
+                  <Receipt className="w-3.5 h-3.5 mr-1" /> Receipt
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => printHtml({
+                    title: `Invoice ${inv.id}`,
+                    bodyHtml: invoiceHtml(inv, settings, formatPrice),
+                  })}
+                >
+                  <Printer className="w-3.5 h-3.5 mr-1" /> Print A4
+                </Button>
                 <Button size="sm" variant="ghost" onClick={() => deleteInvoice(inv.id)}>
                   <Trash2 className="w-3.5 h-3.5 mr-1" /> Delete
                 </Button>
