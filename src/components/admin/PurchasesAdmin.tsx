@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useStore, uid } from '@/store/StoreContext';
 import { PurchaseOrder, PurchaseLine } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Pencil, ScanLine } from 'lucide-react';
+import { Plus, Trash2, Pencil, ScanLine, Upload, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarcodeScannerModal } from '@/components/BarcodeScannerModal';
 import { SortableList } from '@/components/SortableList';
+import { mapCsvToPurchases } from '@/lib/csvSimple';
+import { printHtml } from '@/lib/print';
+import { purchaseHtml } from '@/lib/printTemplates';
 
 const empty: PurchaseOrder = {
   id: '', vendorName: '', status: 'ordered', orderDate: new Date().toISOString().slice(0, 10),
@@ -16,9 +19,29 @@ const empty: PurchaseOrder = {
 };
 
 export function PurchasesAdmin() {
-  const { purchases, vendors, products, upsertPurchase, deletePurchase, reorderPurchases, formatPrice } = useStore();
+  const { purchases, vendors, products, settings, upsertPurchase, deletePurchase, reorderPurchases, formatPrice } = useStore();
   const [form, setForm] = useState<PurchaseOrder>(empty);
   const [scanLineIdx, setScanLineIdx] = useState<number | null>(null);
+  const [importing, setImporting] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleCsv = async (file: File) => {
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const result = mapCsvToPurchases(text);
+      if (!result.records.length) {
+        toast.error('No purchase orders found');
+        return;
+      }
+      result.records.forEach((p) => upsertPurchase(p));
+      toast.success(`Imported ${result.records.length} purchase orders${result.skipped ? ` · ${result.skipped} rows skipped` : ''}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'CSV import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const updateLine = (i: number, k: keyof PurchaseLine, v: any) => {
     setForm((f) => {
@@ -128,9 +151,37 @@ export function PurchasesAdmin() {
       </Card>
 
       <Card className="p-4">
-        <h4 className="font-semibold mb-3">Purchase Orders ({purchases.length})</h4>
+        <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
+          <h4 className="font-semibold">Purchase Orders ({purchases.length})</h4>
+          <div>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleCsv(f);
+                e.target.value = '';
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={importing}
+              onClick={() => fileRef.current?.click()}
+              title="CSV columns: PO Number, Vendor, Order Date, Item, Ordered Qty, Cost"
+            >
+              <Upload className="w-3.5 h-3.5 mr-1" />
+              {importing ? 'Importing…' : 'Import CSV'}
+            </Button>
+          </div>
+        </div>
         {purchases.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No purchase orders.</p>
+          <p className="text-sm text-muted-foreground">
+            No purchase orders. CSV format: <code className="text-xs">PO Number, Vendor, Order Date, Item, Ordered Qty, Received Qty, Cost</code>
+          </p>
         ) : (
           <SortableList
             className="space-y-2"
@@ -145,6 +196,18 @@ export function PurchasesAdmin() {
                     <p className="text-xs text-muted-foreground">{p.orderDate} · {p.status} · {p.lines.length} items · {formatPrice(totalAmount(p))}</p>
                   </div>
                   <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      onClick={() => printHtml({
+                        title: `PO ${p.id}`,
+                        bodyHtml: purchaseHtml(p, settings, formatPrice),
+                      })}
+                      title="Print"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                    </Button>
                     <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setForm(p)}>
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
