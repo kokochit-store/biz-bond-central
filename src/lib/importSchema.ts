@@ -66,7 +66,10 @@ export const importSchema = z.object({
   theme: themeSchema.optional(),
   prefs: prefsSchema.optional(),
   categories: z.array(z.string().max(100)).max(500).optional(),
-  // adminCreds intentionally NOT accepted — see comment above.
-}).strict().passthrough();
+  // Allow metadata fields produced by exportData()
+  exportedAt: z.string().max(64).optional(),
+  version: z.number().optional(),
+  // adminCreds intentionally NOT accepted and silently dropped via passthrough strip below.
+}).passthrough();
 
 export type ImportPayload = z.infer<typeof importSchema>;
