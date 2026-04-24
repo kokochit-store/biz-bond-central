@@ -5,12 +5,14 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Pencil, Trash2, Upload, FileDown } from 'lucide-react';
+import { Pencil, Trash2, Upload, FileDown, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarcodeInput } from '@/components/BarcodeInput';
 import { SortableList } from '@/components/SortableList';
 import { ImageUpload } from '@/components/ImageUpload';
 import { parseCsv, mapCsvToProducts } from '@/lib/csvImport';
+import { printHtml } from '@/lib/print';
+import { itemsHtml } from '@/lib/printTemplates';
 
 const empty: Product = {
   id: '', name: '', category: '', price: 0, cost: 0, stock: 0, reorderLevel: 0,
@@ -19,7 +21,7 @@ const empty: Product = {
 
 export function ItemsAdmin() {
   const {
-    products, vendors, categories,
+    products, vendors, categories, settings,
     upsertProduct, deleteProduct, setProducts,
     setCategories, upsertVendor,
     formatPrice,
@@ -217,6 +219,17 @@ export function ItemsAdmin() {
             >
               <FileDown className="w-3.5 h-3.5 mr-1" />
               Load Sample (3,952)
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => printHtml({
+                title: 'Items List',
+                bodyHtml: itemsHtml(filtered.length ? filtered : products, settings, formatPrice),
+              })}
+            >
+              <Printer className="w-3.5 h-3.5 mr-1" /> Print
             </Button>
             <Input
               placeholder="Search items..."

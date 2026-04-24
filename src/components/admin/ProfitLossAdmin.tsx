@@ -3,7 +3,9 @@ import { useStore } from '@/store/StoreContext';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, DollarSign, Package } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Package, Printer } from 'lucide-react';
+import { printHtml } from '@/lib/print';
+import { pnlHtml } from '@/lib/printTemplates';
 
 function startOfMonth() {
   const d = new Date();
@@ -15,7 +17,7 @@ function today() {
 }
 
 export function ProfitLossAdmin() {
-  const { invoices, purchases, ledger, formatPrice } = useStore();
+  const { invoices, purchases, ledger, settings, formatPrice } = useStore();
   const [from, setFrom] = useState(startOfMonth());
   const [to, setTo] = useState(today());
 
@@ -108,6 +110,15 @@ export function ProfitLossAdmin() {
             <Button size="sm" variant="outline" onClick={() => setRange(30)}>30d</Button>
             <Button size="sm" variant="outline" onClick={() => setRange(90)}>90d</Button>
             <Button size="sm" variant="outline" onClick={() => setRange(365)}>1y</Button>
+            <Button
+              size="sm"
+              onClick={() => printHtml({
+                title: 'Profit & Loss',
+                bodyHtml: pnlHtml({ from, to, ...data }, settings, formatPrice),
+              })}
+            >
+              <Printer className="w-3.5 h-3.5 mr-1" /> Print
+            </Button>
           </div>
         </div>
       </Card>
