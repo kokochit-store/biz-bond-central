@@ -1,6 +1,14 @@
 import { z } from 'zod';
 
 const optionalText = (max: number) => z.string().max(max).nullish().transform((value) => value ?? undefined);
+const optionalImageUrl = z.string()
+  .max(1_000_000)
+  .refine(
+    (value) => !value || value.startsWith('data:image/') || /^https?:\/\//i.test(value),
+    'Image must be empty, an http(s) URL, or an embedded image data URL',
+  )
+  .nullish()
+  .transform((value) => value ?? undefined);
 const numericValue = (min: number, max: number) => z.coerce.number().finite().min(min).max(max);
 
 // Strict schema for backup imports. Anything not matching is rejected.
@@ -20,7 +28,7 @@ const productSchema = z.object({
   vendorId: optionalText(64),
   location: optionalText(120),
   description: optionalText(2000),
-  imageUrl: optionalText(2048),
+  imageUrl: optionalImageUrl,
 });
 
 const customerSchema = z.object({
