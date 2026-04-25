@@ -74,6 +74,12 @@ interface StoreState {
 
   exportData: () => void;
   importData: (json: string) => { ok: boolean; error?: string };
+  testImport: (json: string) => {
+    ok: boolean;
+    error?: string;
+    issues: { path: string; message: string }[];
+    summary: { key: string; current: number | string; incoming: number | string; delta?: string }[];
+  };
   resetAll: () => void;
 
   formatPrice: (n: number) => string;
