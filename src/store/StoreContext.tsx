@@ -74,6 +74,12 @@ interface StoreState {
 
   exportData: () => void;
   importData: (json: string) => { ok: boolean; error?: string };
+  testImport: (json: string) => {
+    ok: boolean;
+    error?: string;
+    issues: { path: string; message: string }[];
+    summary: { key: string; current: number | string; incoming: number | string; delta?: string }[];
+  };
   resetAll: () => void;
 
   formatPrice: (n: number) => string;
@@ -318,6 +324,42 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (d.prefs) setPrefs((prev) => ({ ...prev, ...(d.prefs as Partial<AppPreferences>) }));
       if (d.categories) setCategoriesState(d.categories);
       return { ok: true };
+    },
+    testImport: (json) => {
+      const issues: { path: string; message: string }[] = [];
+      let parsed: any;
+      try { parsed = JSON.parse(json); }
+      catch (e: any) { return { ok: false, error: 'File is not valid JSON.', issues, summary: [] }; }
+      const result = importSchema.safeParse(parsed);
+      if (!result.success) {
+        for (const i of result.error.issues) {
+          issues.push({ path: i.path.join('.') || 'root', message: i.message });
+        }
+        return { ok: false, error: `${issues.length} validation issue(s) found.`, issues, summary: [] };
+      }
+      const d = result.data;
+      const len = (a: unknown) => Array.isArray(a) ? a.length : 0;
+      const mk = (key: string, cur: number, inc: number | undefined) => ({
+        key,
+        current: cur,
+        incoming: inc ?? '—',
+        delta: inc === undefined ? 'no change' : `${inc - cur >= 0 ? '+' : ''}${inc - cur}`,
+      });
+      const summary = [
+        mk('Products', products.length, d.products ? len(d.products) : undefined),
+        mk('Customers', customers.length, d.customers ? len(d.customers) : undefined),
+        mk('Vendors', vendors.length, d.vendors ? len(d.vendors) : undefined),
+        mk('Purchases', purchases.length, d.purchases ? len(d.purchases) : undefined),
+        mk('Ledger entries', ledger.length, d.ledger ? len(d.ledger) : undefined),
+        mk('Invoices', invoices.length, d.invoices ? len(d.invoices) : undefined),
+        mk('Categories', categories.length, d.categories ? len(d.categories) : undefined),
+        { key: 'Settings', current: settings.storeName || '—', incoming: d.settings?.storeName || (d.settings ? '(partial)' : '—') },
+        { key: 'Theme', current: 'current', incoming: d.theme ? 'will update' : 'no change' },
+        { key: 'Preferences', current: prefs.language, incoming: d.prefs?.language || (d.prefs ? '(partial)' : 'no change') },
+        { key: 'Exported at', current: '—', incoming: (parsed?.exportedAt as string) || '—' },
+        { key: 'Version', current: '—', incoming: (parsed?.version as number)?.toString() || '—' },
+      ];
+      return { ok: true, issues, summary };
     },
     resetAll: () => {
       if (confirm('Reset ALL data? This cannot be undone.')) {
