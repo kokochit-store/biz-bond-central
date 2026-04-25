@@ -28,7 +28,7 @@ const productSchema = z.object({
   vendorId: optionalText(64),
   location: optionalText(120),
   description: optionalText(2000),
-  imageUrl: optionalText(2048),
+  imageUrl: optionalImageUrl,
 });
 
 const customerSchema = z.object({
