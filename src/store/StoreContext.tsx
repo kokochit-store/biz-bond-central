@@ -324,7 +324,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const path = first?.path?.join('.') || 'root';
         return { ok: false, error: `Backup validation failed at "${path}": ${first?.message || 'unknown error'}` };
       }
-      const d = result.data;
+      const d = normalizeImportPayload(result.data);
       // adminCreds is never accepted from imports — schema strips it.
       if (d.products) setProducts(d.products as unknown as Product[]);
       if (d.customers) setCustomers(d.customers as unknown as Customer[]);
