@@ -125,14 +125,30 @@ const StoreContext = createContext<StoreState | null>(null);
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 const MAX_STORED_IMAGE_URL_LENGTH = 250_000;
+const NON_NEGATIVE_IMPORT_PRODUCT_FIELDS = ['stock', 'reorderLevel'] as const;
 
 function normalizeImportPayload<T extends { products?: unknown[] }>(data: T): T {
-  if (!Array.isArray(data.products)) return data;
+  if (!data || typeof data !== 'object' || !Array.isArray(data.products)) return data;
   return {
     ...data,
     products: data.products.map((product: any) => {
-      if (typeof product?.imageUrl !== 'string' || product.imageUrl.length <= MAX_STORED_IMAGE_URL_LENGTH) return product;
-      return { ...product, imageUrl: '' };
+      if (!product || typeof product !== 'object') return product;
+      let next = product;
+
+      for (const field of NON_NEGATIVE_IMPORT_PRODUCT_FIELDS) {
+        const value = typeof next[field] === 'string' ? Number(next[field]) : next[field];
+        if (typeof value === 'number' && Number.isFinite(value) && value < 0) {
+          next = next === product ? { ...product } : next;
+          next[field] = 0;
+        }
+      }
+
+      if (typeof next.imageUrl === 'string' && next.imageUrl.length > MAX_STORED_IMAGE_URL_LENGTH) {
+        next = next === product ? { ...product } : next;
+        next.imageUrl = '';
+      }
+
+      return next;
     }),
   };
 }
