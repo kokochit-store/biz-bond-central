@@ -269,11 +269,86 @@ export function CustomizationAdmin() {
             <Upload className="w-4 h-4 mr-1.5" /> Import Backup
           </Button>
           <input ref={fileRef} type="file" accept="application/json" hidden onChange={handleImport} />
+          <Button onClick={() => testFileRef.current?.click()} variant="secondary">
+            <FlaskConical className="w-4 h-4 mr-1.5" /> Test Backup Import
+          </Button>
+          <input ref={testFileRef} type="file" accept="application/json" hidden onChange={handleTestImport} />
           <Button onClick={resetAll} variant="destructive">
             <RotateCcw className="w-4 h-4 mr-1.5" /> Reset All Data
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground mt-3">
+          <strong>Test Backup Import</strong> က file ကို စစ်ပြီး report ပြပေးပါမယ်။ Data တွေကို တကယ် overwrite မလုပ်ပါ။
+        </p>
       </Card>
+
+      <Dialog open={!!testReport} onOpenChange={(o) => !o && setTestReport(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {testReport?.ok ? (
+                <><CheckCircle2 className="w-5 h-5 text-primary" /> Backup file is valid</>
+              ) : (
+                <><AlertCircle className="w-5 h-5 text-destructive" /> Backup file has issues</>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {testFileName} — Dry-run only. No data was changed on this device.
+            </DialogDescription>
+          </DialogHeader>
+
+          {testReport && !testReport.ok && testReport.issues.length > 0 && (
+            <div className="space-y-2">
+              <h5 className="text-sm font-semibold">Validation issues ({testReport.issues.length})</h5>
+              <div className="rounded-md border divide-y max-h-64 overflow-y-auto">
+                {testReport.issues.map((iss, i) => (
+                  <div key={i} className="p-2.5 text-sm">
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{iss.path}</code>
+                    <p className="text-muted-foreground mt-1">{iss.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {testReport?.ok && (
+            <div className="space-y-2">
+              <h5 className="text-sm font-semibold">Import preview</h5>
+              <div className="rounded-md border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted">
+                    <tr>
+                      <th className="text-left p-2">Section</th>
+                      <th className="text-left p-2">Current</th>
+                      <th className="text-left p-2">Incoming</th>
+                      <th className="text-left p-2">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {testReport.summary.map((row, i) => (
+                      <tr key={i} className="border-t">
+                        <td className="p-2 font-medium">{row.key}</td>
+                        <td className="p-2 text-muted-foreground">{String(row.current)}</td>
+                        <td className="p-2">{String(row.incoming)}</td>
+                        <td className="p-2 text-xs text-muted-foreground">{row.delta || ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTestReport(null)}>Close</Button>
+            {testReport?.ok && (
+              <Button onClick={() => { setTestReport(null); fileRef.current?.click(); }}>
+                Looks good — Run real import
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
