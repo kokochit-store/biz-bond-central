@@ -334,13 +334,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     importData: (json) => {
       let parsed: unknown;
       try { parsed = JSON.parse(json); } catch { return { ok: false, error: 'File is not valid JSON.' }; }
-      const result = importSchema.safeParse(parsed);
+      const normalized = normalizeImportPayload(parsed as { products?: unknown[] });
+      const result = importSchema.safeParse(normalized);
       if (!result.success) {
         const first = result.error.issues[0];
         const path = first?.path?.join('.') || 'root';
         return { ok: false, error: `Backup validation failed at "${path}": ${first?.message || 'unknown error'}` };
       }
-      const d = normalizeImportPayload(result.data);
+      const d = result.data;
       // adminCreds is never accepted from imports — schema strips it.
       if (d.products) setProducts(d.products as unknown as Product[]);
       if (d.customers) setCustomers(d.customers as unknown as Customer[]);
@@ -359,14 +360,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       let parsed: any;
       try { parsed = JSON.parse(json); }
       catch (e: any) { return { ok: false, error: 'File is not valid JSON.', issues, summary: [] }; }
-      const result = importSchema.safeParse(parsed);
+      const normalized = normalizeImportPayload(parsed);
+      const result = importSchema.safeParse(normalized);
       if (!result.success) {
         for (const i of result.error.issues) {
           issues.push({ path: i.path.join('.') || 'root', message: i.message });
         }
         return { ok: false, error: `${issues.length} validation issue(s) found.`, issues, summary: [] };
       }
-      const d = normalizeImportPayload(result.data);
+      const d = result.data;
       const len = (a: unknown) => Array.isArray(a) ? a.length : 0;
       const mk = (key: string, cur: number, inc: number | undefined) => ({
         key,
