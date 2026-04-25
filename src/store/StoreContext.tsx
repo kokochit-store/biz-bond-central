@@ -124,6 +124,19 @@ const defaultState = {
 const StoreContext = createContext<StoreState | null>(null);
 const uid = () => Math.random().toString(36).slice(2, 10);
 
+const MAX_STORED_IMAGE_URL_LENGTH = 250_000;
+
+function normalizeImportPayload<T extends { products?: unknown[] }>(data: T): T {
+  if (!Array.isArray(data.products)) return data;
+  return {
+    ...data,
+    products: data.products.map((product: any) => {
+      if (typeof product?.imageUrl !== 'string' || product.imageUrl.length <= MAX_STORED_IMAGE_URL_LENGTH) return product;
+      return { ...product, imageUrl: '' };
+    }),
+  };
+}
+
 function migrateCreds(parsed: any): StoredAdminCreds {
   const c = parsed?.adminCreds;
   if (c && c.passwordHash && typeof c.passwordHash === 'object' && c.passwordHash.algo === 'pbkdf2-sha256') {
