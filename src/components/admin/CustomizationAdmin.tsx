@@ -66,6 +66,24 @@ export function CustomizationAdmin() {
     e.target.value = '';
   };
 
+  const handleTestImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) {
+      toast.error('Backup file is too large (max 5 MB)');
+      e.target.value = '';
+      return;
+    }
+    setTestFileName(f.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const report = testImport(String(reader.result));
+      setTestReport(report);
+    };
+    reader.readAsText(f);
+    e.target.value = '';
+  };
+
   return (
     <div className="space-y-4">
       {/* THEME */}
