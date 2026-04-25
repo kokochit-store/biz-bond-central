@@ -26,9 +26,12 @@ const SWATCHES = [
 ];
 
 export function CustomizationAdmin() {
-  const { theme, updateTheme, prefs, updatePrefs, categories, setCategories, exportData, importData, resetAll } = useStore();
+  const { theme, updateTheme, prefs, updatePrefs, categories, setCategories, exportData, importData, testImport, resetAll } = useStore();
   const [newCat, setNewCat] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
+  const testFileRef = useRef<HTMLInputElement>(null);
+  const [testReport, setTestReport] = useState<ReturnType<typeof testImport> | null>(null);
+  const [testFileName, setTestFileName] = useState('');
 
   const addCat = () => {
     const v = newCat.trim();
