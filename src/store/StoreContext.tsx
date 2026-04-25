@@ -350,7 +350,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         return { ok: false, error: `${issues.length} validation issue(s) found.`, issues, summary: [] };
       }
-      const d = result.data;
+      const d = normalizeImportPayload(result.data);
       const len = (a: unknown) => Array.isArray(a) ? a.length : 0;
       const mk = (key: string, cur: number, inc: number | undefined) => ({
         key,
