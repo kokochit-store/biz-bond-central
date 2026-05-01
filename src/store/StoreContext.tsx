@@ -410,6 +410,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     resetAll: () => {
       if (confirm('Reset ALL data? This cannot be undone.')) {
         localStorage.removeItem(STORAGE_KEY);
+        deleteLocalSnapshot(STORAGE_KEY).catch(() => undefined);
         window.location.reload();
       }
     },
