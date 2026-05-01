@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 const FONTS_DISPLAY = ['Playfair Display', 'DM Sans', 'Inter', 'Noto Sans Myanmar'] as const;
 const FONTS_BODY = ['DM Sans', 'Inter', 'Noto Sans Myanmar'] as const;
 const CURRENCIES = ['Ks', 'MMK', 'USD', 'THB', '€', '£', '¥', '₹'];
+const MAX_BACKUP_FILE_SIZE = 100 * 1024 * 1024;
 
 const SWATCHES = [
   { label: 'Orange', h: 24, s: 80, l: 50 },
@@ -46,9 +47,8 @@ export function CustomizationAdmin() {
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    // 5 MB cap — guards against accidental huge files
-    if (f.size > 5 * 1024 * 1024) {
-      toast.error('Backup file is too large (max 5 MB)');
+    if (f.size > MAX_BACKUP_FILE_SIZE) {
+      toast.error('Backup file is too large (max 100 MB)');
       e.target.value = '';
       return;
     }
@@ -69,8 +69,8 @@ export function CustomizationAdmin() {
   const handleTestImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (f.size > 5 * 1024 * 1024) {
-      toast.error('Backup file is too large (max 5 MB)');
+    if (f.size > MAX_BACKUP_FILE_SIZE) {
+      toast.error('Backup file is too large (max 100 MB)');
       e.target.value = '';
       return;
     }
