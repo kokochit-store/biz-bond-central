@@ -10,6 +10,7 @@ import {
   type PasswordHash,
 } from '@/lib/crypto';
 import { createBackupPayload, parseBackupJson } from '@/lib/backup';
+import { deleteLocalSnapshot, getLocalSnapshot, setLocalSnapshot } from '@/lib/localStoreDb';
 
 // Stored shape — password is ALWAYS a salted PBKDF2 hash, never plaintext.
 interface StoredAdminCreds { username: string; passwordHash: PasswordHash; }
@@ -194,12 +195,35 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [categories, setCategoriesState] = useState<string[]>(initial.categories);
   const [adminCreds, setAdminCreds] = useState<StoredAdminCreds>(initial.adminCreds);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getLocalSnapshot<any>(STORAGE_KEY).then((saved) => {
+      if (!alive || !saved) return;
+      setProducts(saved.products || defaultState.products);
+      setCustomers(saved.customers || []);
+      setVendors(saved.vendors || []);
+      setPurchases(saved.purchases || []);
+      setLedger(saved.ledger || []);
+      setInvoices(saved.invoices || []);
+      setCart(saved.cart || []);
+      setSettings({ ...defaultState.settings, ...(saved.settings || {}) });
+      setTheme({ ...DEFAULT_THEME, ...(saved.theme || {}) });
+      setPrefs({ ...DEFAULT_PREFS, ...(saved.prefs || {}) });
+      setCategoriesState(saved.categories || DEFAULT_CATEGORIES);
+      setAdminCreds(migrateCreds(saved));
+    }).finally(() => { if (alive) setIsHydrated(true); });
+    return () => { alive = false; };
+  }, []);
 
   // Persist (note: only the salted PBKDF2 password HASH is ever written, never plaintext)
   useEffect(() => {
+    if (!isHydrated) return;
     const data = { products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds };
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* quota or privacy mode */ }
-  }, [products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds]);
+    setLocalSnapshot(STORAGE_KEY, data).catch(() => undefined);
+  }, [products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds, isHydrated]);
 
   // Idle session timeout — auto-logout admin after 15 minutes of no activity.
   // Also clear the sessionStorage gate on tab close so admin state never
