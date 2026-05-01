@@ -33,9 +33,7 @@ export function OverviewView({ onNavigate }: Props) {
           </div>
         </div>
       </section>
-
     </div>
   );
 }
-  );
-}
+
