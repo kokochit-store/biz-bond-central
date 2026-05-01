@@ -323,7 +323,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Backup payload deliberately EXCLUDES adminCreds — credentials must never
       // travel in a JSON file that could be intercepted, shared, or reimported
       // to overwrite another device's login.
-      const data = { products, customers, vendors, purchases, ledger, invoices, settings, theme, prefs, categories, exportedAt: new Date().toISOString(), version: 3 };
+      const data = createBackupPayload({ products, customers, vendors, purchases, ledger, invoices, settings, theme, prefs, categories });
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -333,23 +333,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       URL.revokeObjectURL(url);
     },
     importData: (json) => {
-      let parsed: unknown;
-      try { parsed = JSON.parse(json); } catch { return { ok: false, error: 'File is not valid JSON.' }; }
-      const normalized = normalizeImportPayload(parsed as { products?: unknown[] });
-      const result = importSchema.safeParse(normalized);
-      if (!result.success) {
-        const first = result.error.issues[0];
-        const path = first?.path?.join('.') || 'root';
-        return { ok: false, error: `Backup validation failed at "${path}": ${first?.message || 'unknown error'}` };
+      const result = parseBackupJson(json);
+      if (!result.ok || !result.data) {
+        const first = result.issues[0];
+        return { ok: false, error: first ? `${first.path}: ${first.message}` : (result.error || 'Invalid backup file') };
       }
       const d = result.data;
       // adminCreds is never accepted from imports — schema strips it.
-      if (d.products) setProducts(d.products as unknown as Product[]);
-      if (d.customers) setCustomers(d.customers as unknown as Customer[]);
-      if (d.vendors) setVendors(d.vendors as unknown as Vendor[]);
-      if (d.purchases) setPurchases(d.purchases as unknown as PurchaseOrder[]);
-      if (d.ledger) setLedger(d.ledger as unknown as LedgerEntry[]);
-      if (d.invoices) setInvoices(d.invoices as unknown as Invoice[]);
+      if (d.products) setProducts(d.products);
+      if (d.customers) setCustomers(d.customers);
+      if (d.vendors) setVendors(d.vendors);
+      if (d.purchases) setPurchases(d.purchases);
+      if (d.ledger) setLedger(d.ledger);
+      if (d.invoices) setInvoices(d.invoices);
       if (d.settings) setSettings((prev) => ({ ...prev, ...d.settings }));
       if (d.theme) setTheme((prev) => ({ ...prev, ...(d.theme as Partial<ThemeSettings>) }));
       if (d.prefs) setPrefs((prev) => ({ ...prev, ...(d.prefs as Partial<AppPreferences>) }));
