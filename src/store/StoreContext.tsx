@@ -9,7 +9,7 @@ import {
   DEFAULT_PASSWORD_SENTINEL, DEFAULT_PASSWORD_PLAINTEXT,
   type PasswordHash,
 } from '@/lib/crypto';
-import { importSchema } from '@/lib/importSchema';
+import { createBackupPayload, parseBackupJson } from '@/lib/backup';
 
 // Stored shape — password is ALWAYS a salted PBKDF2 hash, never plaintext.
 interface StoredAdminCreds { username: string; passwordHash: PasswordHash; }
@@ -78,6 +78,7 @@ interface StoreState {
     ok: boolean;
     error?: string;
     issues: { path: string; message: string }[];
+    notices: { path: string; message: string }[];
     summary: { key: string; current: number | string; incoming: number | string; delta?: string }[];
   };
   resetAll: () => void;
