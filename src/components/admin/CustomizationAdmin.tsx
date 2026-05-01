@@ -259,7 +259,7 @@ export function CustomizationAdmin() {
       <Card className="p-5">
         <h4 className="font-semibold mb-1">Backup & Restore</h4>
         <p className="text-xs text-muted-foreground mb-4">
-          Data အားလုံးကို JSON file အဖြစ် download/upload လုပ်နိုင်ပါတယ်။ Offline backup အတွက် သုံးပါ။
+          Items, purchase orders, customers, vendors, invoices, settings နဲ့ image data အားလုံးကို JSON backup အဖြစ် သိမ်း/ပြန်တင်နိုင်ပါတယ်။
         </p>
         <div className="flex flex-wrap gap-2">
           <Button onClick={exportData} variant="outline">
@@ -268,11 +268,11 @@ export function CustomizationAdmin() {
           <Button onClick={() => fileRef.current?.click()} variant="outline">
             <Upload className="w-4 h-4 mr-1.5" /> Import Backup
           </Button>
-          <input ref={fileRef} type="file" accept="application/json" hidden onChange={handleImport} />
+          <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={handleImport} />
           <Button onClick={() => testFileRef.current?.click()} variant="secondary">
             <FlaskConical className="w-4 h-4 mr-1.5" /> Test Backup Import
           </Button>
-          <input ref={testFileRef} type="file" accept="application/json" hidden onChange={handleTestImport} />
+          <input ref={testFileRef} type="file" accept=".json,application/json" hidden onChange={handleTestImport} />
           <Button onClick={resetAll} variant="destructive">
             <RotateCcw className="w-4 h-4 mr-1.5" /> Reset All Data
           </Button>
