@@ -311,6 +311,20 @@ export function CustomizationAdmin() {
             </div>
           )}
 
+          {testReport && testReport.notices.length > 0 && (
+            <div className="space-y-2">
+              <h5 className="text-sm font-semibold">Auto fixed / preserved notes ({testReport.notices.length})</h5>
+              <div className="rounded-md border divide-y max-h-40 overflow-y-auto">
+                {testReport.notices.map((notice, i) => (
+                  <div key={i} className="p-2.5 text-sm">
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{notice.path}</code>
+                    <p className="text-muted-foreground mt-1">{notice.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {testReport?.ok && (
             <div className="space-y-2">
               <h5 className="text-sm font-semibold">Import preview</h5>
