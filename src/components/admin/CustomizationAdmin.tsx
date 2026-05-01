@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 const FONTS_DISPLAY = ['Playfair Display', 'DM Sans', 'Inter', 'Noto Sans Myanmar'] as const;
 const FONTS_BODY = ['DM Sans', 'Inter', 'Noto Sans Myanmar'] as const;
 const CURRENCIES = ['Ks', 'MMK', 'USD', 'THB', '€', '£', '¥', '₹'];
+const MAX_BACKUP_FILE_SIZE = 100 * 1024 * 1024;
 
 const SWATCHES = [
   { label: 'Orange', h: 24, s: 80, l: 50 },
@@ -46,9 +47,8 @@ export function CustomizationAdmin() {
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    // 5 MB cap — guards against accidental huge files
-    if (f.size > 5 * 1024 * 1024) {
-      toast.error('Backup file is too large (max 5 MB)');
+    if (f.size > MAX_BACKUP_FILE_SIZE) {
+      toast.error('Backup file is too large (max 100 MB)');
       e.target.value = '';
       return;
     }
@@ -69,8 +69,8 @@ export function CustomizationAdmin() {
   const handleTestImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    if (f.size > 5 * 1024 * 1024) {
-      toast.error('Backup file is too large (max 5 MB)');
+    if (f.size > MAX_BACKUP_FILE_SIZE) {
+      toast.error('Backup file is too large (max 100 MB)');
       e.target.value = '';
       return;
     }
@@ -259,7 +259,7 @@ export function CustomizationAdmin() {
       <Card className="p-5">
         <h4 className="font-semibold mb-1">Backup & Restore</h4>
         <p className="text-xs text-muted-foreground mb-4">
-          Data အားလုံးကို JSON file အဖြစ် download/upload လုပ်နိုင်ပါတယ်။ Offline backup အတွက် သုံးပါ။
+          Items, purchase orders, customers, vendors, invoices, settings နဲ့ image data အားလုံးကို JSON backup အဖြစ် သိမ်း/ပြန်တင်နိုင်ပါတယ်။
         </p>
         <div className="flex flex-wrap gap-2">
           <Button onClick={exportData} variant="outline">
@@ -268,11 +268,11 @@ export function CustomizationAdmin() {
           <Button onClick={() => fileRef.current?.click()} variant="outline">
             <Upload className="w-4 h-4 mr-1.5" /> Import Backup
           </Button>
-          <input ref={fileRef} type="file" accept="application/json" hidden onChange={handleImport} />
+          <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={handleImport} />
           <Button onClick={() => testFileRef.current?.click()} variant="secondary">
             <FlaskConical className="w-4 h-4 mr-1.5" /> Test Backup Import
           </Button>
-          <input ref={testFileRef} type="file" accept="application/json" hidden onChange={handleTestImport} />
+          <input ref={testFileRef} type="file" accept=".json,application/json" hidden onChange={handleTestImport} />
           <Button onClick={resetAll} variant="destructive">
             <RotateCcw className="w-4 h-4 mr-1.5" /> Reset All Data
           </Button>
@@ -305,6 +305,20 @@ export function CustomizationAdmin() {
                   <div key={i} className="p-2.5 text-sm">
                     <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{iss.path}</code>
                     <p className="text-muted-foreground mt-1">{iss.message}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {testReport && testReport.notices.length > 0 && (
+            <div className="space-y-2">
+              <h5 className="text-sm font-semibold">Auto fixed / preserved notes ({testReport.notices.length})</h5>
+              <div className="rounded-md border divide-y max-h-40 overflow-y-auto">
+                {testReport.notices.map((notice, i) => (
+                  <div key={i} className="p-2.5 text-sm">
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{notice.path}</code>
+                    <p className="text-muted-foreground mt-1">{notice.message}</p>
                   </div>
                 ))}
               </div>

@@ -9,7 +9,8 @@ import {
   DEFAULT_PASSWORD_SENTINEL, DEFAULT_PASSWORD_PLAINTEXT,
   type PasswordHash,
 } from '@/lib/crypto';
-import { importSchema } from '@/lib/importSchema';
+import { createBackupPayload, parseBackupJson } from '@/lib/backup';
+import { deleteLocalSnapshot, getLocalSnapshot, setLocalSnapshot } from '@/lib/localStoreDb';
 
 // Stored shape — password is ALWAYS a salted PBKDF2 hash, never plaintext.
 interface StoredAdminCreds { username: string; passwordHash: PasswordHash; }
@@ -78,6 +79,7 @@ interface StoreState {
     ok: boolean;
     error?: string;
     issues: { path: string; message: string }[];
+    notices: { path: string; message: string }[];
     summary: { key: string; current: number | string; incoming: number | string; delta?: string }[];
   };
   resetAll: () => void;
@@ -124,35 +126,6 @@ const defaultState = {
 const StoreContext = createContext<StoreState | null>(null);
 const uid = () => Math.random().toString(36).slice(2, 10);
 
-const MAX_STORED_IMAGE_URL_LENGTH = 250_000;
-const NON_NEGATIVE_IMPORT_PRODUCT_FIELDS = ['stock', 'reorderLevel'] as const;
-
-function normalizeImportPayload<T extends { products?: unknown[] }>(data: T): T {
-  if (!data || typeof data !== 'object' || !Array.isArray(data.products)) return data;
-  return {
-    ...data,
-    products: data.products.map((product: any) => {
-      if (!product || typeof product !== 'object') return product;
-      let next = product;
-
-      for (const field of NON_NEGATIVE_IMPORT_PRODUCT_FIELDS) {
-        const value = typeof next[field] === 'string' ? Number(next[field]) : next[field];
-        if (typeof value === 'number' && Number.isFinite(value) && value < 0) {
-          next = next === product ? { ...product } : next;
-          next[field] = 0;
-        }
-      }
-
-      if (typeof next.imageUrl === 'string' && next.imageUrl.length > MAX_STORED_IMAGE_URL_LENGTH) {
-        next = next === product ? { ...product } : next;
-        next.imageUrl = '';
-      }
-
-      return next;
-    }),
-  };
-}
-
 function migrateCreds(parsed: any): StoredAdminCreds {
   const c = parsed?.adminCreds;
   if (c && c.passwordHash && typeof c.passwordHash === 'object' && c.passwordHash.algo === 'pbkdf2-sha256') {
@@ -193,12 +166,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [categories, setCategoriesState] = useState<string[]>(initial.categories);
   const [adminCreds, setAdminCreds] = useState<StoredAdminCreds>(initial.adminCreds);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getLocalSnapshot<any>(STORAGE_KEY).then((saved) => {
+      if (!alive || !saved) return;
+      setProducts(saved.products || defaultState.products);
+      setCustomers(saved.customers || []);
+      setVendors(saved.vendors || []);
+      setPurchases(saved.purchases || []);
+      setLedger(saved.ledger || []);
+      setInvoices(saved.invoices || []);
+      setCart(saved.cart || []);
+      setSettings({ ...defaultState.settings, ...(saved.settings || {}) });
+      setTheme({ ...DEFAULT_THEME, ...(saved.theme || {}) });
+      setPrefs({ ...DEFAULT_PREFS, ...(saved.prefs || {}) });
+      setCategoriesState(saved.categories || DEFAULT_CATEGORIES);
+      setAdminCreds(migrateCreds(saved));
+    }).catch(() => undefined).finally(() => { if (alive) setIsHydrated(true); });
+    return () => { alive = false; };
+  }, []);
 
   // Persist (note: only the salted PBKDF2 password HASH is ever written, never plaintext)
   useEffect(() => {
+    if (!isHydrated) return;
     const data = { products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds };
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* quota or privacy mode */ }
-  }, [products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds]);
+    try {
+      const compact = JSON.stringify(data);
+      if (compact.length < 4_000_000) localStorage.setItem(STORAGE_KEY, compact);
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch { /* quota or privacy mode */ }
+    setLocalSnapshot(STORAGE_KEY, data).catch(() => undefined);
+  }, [products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds, isHydrated]);
 
   // Idle session timeout — auto-logout admin after 15 minutes of no activity.
   // Also clear the sessionStorage gate on tab close so admin state never
@@ -322,7 +322,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Backup payload deliberately EXCLUDES adminCreds — credentials must never
       // travel in a JSON file that could be intercepted, shared, or reimported
       // to overwrite another device's login.
-      const data = { products, customers, vendors, purchases, ledger, invoices, settings, theme, prefs, categories, exportedAt: new Date().toISOString(), version: 3 };
+      const data = createBackupPayload({ products, customers, vendors, purchases, ledger, invoices, settings, theme, prefs, categories });
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -332,23 +332,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       URL.revokeObjectURL(url);
     },
     importData: (json) => {
-      let parsed: unknown;
-      try { parsed = JSON.parse(json); } catch { return { ok: false, error: 'File is not valid JSON.' }; }
-      const normalized = normalizeImportPayload(parsed as { products?: unknown[] });
-      const result = importSchema.safeParse(normalized);
-      if (!result.success) {
-        const first = result.error.issues[0];
-        const path = first?.path?.join('.') || 'root';
-        return { ok: false, error: `Backup validation failed at "${path}": ${first?.message || 'unknown error'}` };
+      const result = parseBackupJson(json);
+      if (!result.ok || !result.data) {
+        const first = result.issues[0];
+        return { ok: false, error: first ? `${first.path}: ${first.message}` : (result.error || 'Invalid backup file') };
       }
       const d = result.data;
       // adminCreds is never accepted from imports — schema strips it.
-      if (d.products) setProducts(d.products as unknown as Product[]);
-      if (d.customers) setCustomers(d.customers as unknown as Customer[]);
-      if (d.vendors) setVendors(d.vendors as unknown as Vendor[]);
-      if (d.purchases) setPurchases(d.purchases as unknown as PurchaseOrder[]);
-      if (d.ledger) setLedger(d.ledger as unknown as LedgerEntry[]);
-      if (d.invoices) setInvoices(d.invoices as unknown as Invoice[]);
+      if (d.products) setProducts(d.products);
+      if (d.customers) setCustomers(d.customers);
+      if (d.vendors) setVendors(d.vendors);
+      if (d.purchases) setPurchases(d.purchases);
+      if (d.ledger) setLedger(d.ledger);
+      if (d.invoices) setInvoices(d.invoices);
       if (d.settings) setSettings((prev) => ({ ...prev, ...d.settings }));
       if (d.theme) setTheme((prev) => ({ ...prev, ...(d.theme as Partial<ThemeSettings>) }));
       if (d.prefs) setPrefs((prev) => ({ ...prev, ...(d.prefs as Partial<AppPreferences>) }));
@@ -356,17 +352,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return { ok: true };
     },
     testImport: (json) => {
-      const issues: { path: string; message: string }[] = [];
-      let parsed: any;
-      try { parsed = JSON.parse(json); }
-      catch (e: any) { return { ok: false, error: 'File is not valid JSON.', issues, summary: [] }; }
-      const normalized = normalizeImportPayload(parsed);
-      const result = importSchema.safeParse(normalized);
-      if (!result.success) {
-        for (const i of result.error.issues) {
-          issues.push({ path: i.path.join('.') || 'root', message: i.message });
-        }
-        return { ok: false, error: `${issues.length} validation issue(s) found.`, issues, summary: [] };
+      const result = parseBackupJson(json);
+      if (!result.ok || !result.data) {
+        return { ok: false, error: result.error || 'Invalid backup file', issues: result.issues, notices: result.notices, summary: [] };
       }
       const d = result.data;
       const len = (a: unknown) => Array.isArray(a) ? a.length : 0;
@@ -387,15 +375,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         { key: 'Settings', current: settings.storeName || '—', incoming: d.settings?.storeName || (d.settings ? '(partial)' : '—') },
         { key: 'Theme', current: 'current', incoming: d.theme ? 'will update' : 'no change' },
         { key: 'Preferences', current: prefs.language, incoming: d.prefs?.language || (d.prefs ? '(partial)' : 'no change') },
-        { key: 'Exported at', current: '—', incoming: (parsed?.exportedAt as string) || '—' },
-        { key: 'Version', current: '—', incoming: (parsed?.version as number)?.toString() || '—' },
+        { key: 'Images', current: '—', incoming: `${result.meta.imageCount} total / ${result.meta.embeddedImageCount} embedded` },
+        { key: 'File size', current: '—', incoming: `${(result.meta.bytes / 1024 / 1024).toFixed(2)} MB` },
+        { key: 'Exported at', current: '—', incoming: result.meta.exportedAt || '—' },
+        { key: 'Version', current: '—', incoming: result.meta.version || result.meta.format || '—' },
       ];
-      return { ok: true, issues, summary };
+      return { ok: true, issues: result.issues, notices: result.notices, summary };
     },
     resetAll: () => {
       if (confirm('Reset ALL data? This cannot be undone.')) {
         localStorage.removeItem(STORAGE_KEY);
-        window.location.reload();
+        deleteLocalSnapshot(STORAGE_KEY).finally(() => window.location.reload());
       }
     },
     formatPrice,
