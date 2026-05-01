@@ -353,17 +353,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return { ok: true };
     },
     testImport: (json) => {
-      const issues: { path: string; message: string }[] = [];
-      let parsed: any;
-      try { parsed = JSON.parse(json); }
-      catch (e: any) { return { ok: false, error: 'File is not valid JSON.', issues, summary: [] }; }
-      const normalized = normalizeImportPayload(parsed);
-      const result = importSchema.safeParse(normalized);
-      if (!result.success) {
-        for (const i of result.error.issues) {
-          issues.push({ path: i.path.join('.') || 'root', message: i.message });
-        }
-        return { ok: false, error: `${issues.length} validation issue(s) found.`, issues, summary: [] };
+      const result = parseBackupJson(json);
+      if (!result.ok || !result.data) {
+        return { ok: false, error: result.error || 'Invalid backup file', issues: result.issues, notices: result.notices, summary: [] };
       }
       const d = result.data;
       const len = (a: unknown) => Array.isArray(a) ? a.length : 0;
@@ -384,10 +376,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         { key: 'Settings', current: settings.storeName || '—', incoming: d.settings?.storeName || (d.settings ? '(partial)' : '—') },
         { key: 'Theme', current: 'current', incoming: d.theme ? 'will update' : 'no change' },
         { key: 'Preferences', current: prefs.language, incoming: d.prefs?.language || (d.prefs ? '(partial)' : 'no change') },
-        { key: 'Exported at', current: '—', incoming: (parsed?.exportedAt as string) || '—' },
-        { key: 'Version', current: '—', incoming: (parsed?.version as number)?.toString() || '—' },
+        { key: 'Images', current: '—', incoming: `${result.meta.imageCount} total / ${result.meta.embeddedImageCount} embedded` },
+        { key: 'File size', current: '—', incoming: `${(result.meta.bytes / 1024 / 1024).toFixed(2)} MB` },
+        { key: 'Exported at', current: '—', incoming: result.meta.exportedAt || '—' },
+        { key: 'Version', current: '—', incoming: result.meta.version || result.meta.format || '—' },
       ];
-      return { ok: true, issues, summary };
+      return { ok: true, issues: result.issues, notices: result.notices, summary };
     },
     resetAll: () => {
       if (confirm('Reset ALL data? This cannot be undone.')) {
