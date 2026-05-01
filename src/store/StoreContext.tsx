@@ -213,7 +213,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setPrefs({ ...DEFAULT_PREFS, ...(saved.prefs || {}) });
       setCategoriesState(saved.categories || DEFAULT_CATEGORIES);
       setAdminCreds(migrateCreds(saved));
-    }).finally(() => { if (alive) setIsHydrated(true); });
+    }).catch(() => undefined).finally(() => { if (alive) setIsHydrated(true); });
     return () => { alive = false; };
   }, []);
 
@@ -221,7 +221,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isHydrated) return;
     const data = { products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds };
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* quota or privacy mode */ }
+    try {
+      const compact = JSON.stringify(data);
+      if (compact.length < 4_000_000) localStorage.setItem(STORAGE_KEY, compact);
+      else localStorage.removeItem(STORAGE_KEY);
+    } catch { /* quota or privacy mode */ }
     setLocalSnapshot(STORAGE_KEY, data).catch(() => undefined);
   }, [products, customers, vendors, purchases, ledger, invoices, cart, settings, theme, prefs, categories, adminCreds, isHydrated]);
 
