@@ -1,24 +1,12 @@
 import { useStore } from '@/store/StoreContext';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Package, Receipt, Users, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import heroBg from '@/assets/hero-bg.jpg';
 
 interface Props { onNavigate: (v: 'shop' | 'admin') => void; }
 
 export function OverviewView({ onNavigate }: Props) {
-  const { products, invoices, customers, ledger, settings, formatPrice } = useStore();
-
-  const totalSales = invoices.reduce((s, i) => s + i.total, 0);
-  const lowStock = products.filter((p) => p.stock <= p.reorderLevel);
-  const totalReceivable = ledger.filter((l) => l.type === 'receivable').reduce((s, l) => s + l.amount, 0);
-
-  const stats = [
-    { label: 'Total Sales', value: formatPrice(totalSales), icon: Receipt, tone: 'bg-primary/10 text-primary' },
-    { label: 'Items', value: products.length, icon: Package, tone: 'bg-accent text-accent-foreground' },
-    { label: 'Customers', value: customers.length, icon: Users, tone: 'bg-success/10 text-success' },
-    { label: 'Receivable', value: formatPrice(totalReceivable), icon: AlertTriangle, tone: 'bg-warning/10 text-warning-foreground' },
-  ];
+  const { settings } = useStore();
 
   return (
     <div className="space-y-6 animate-fade-in">
