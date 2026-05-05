@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
-import { Plus, X, Download, Upload, RotateCcw, Palette, FlaskConical, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, X, Download, Upload, RotateCcw, Palette, FlaskConical, CheckCircle2, AlertCircle, FileArchive } from 'lucide-react';
 import { SortableList } from '@/components/SortableList';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { readBackupFile } from '@/lib/backup';
 import { toast } from 'sonner';
 
 const FONTS_DISPLAY = ['Playfair Display', 'DM Sans', 'Inter', 'Noto Sans Myanmar'] as const;
@@ -27,7 +28,7 @@ const SWATCHES = [
 ];
 
 export function CustomizationAdmin() {
-  const { theme, updateTheme, prefs, updatePrefs, categories, setCategories, exportData, importData, testImport, resetAll } = useStore();
+  const { theme, updateTheme, prefs, updatePrefs, categories, setCategories, exportData, exportDataCompressed, importData, testImport, resetAll } = useStore();
   const [newCat, setNewCat] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const testFileRef = useRef<HTMLInputElement>(null);
@@ -44,7 +45,7 @@ export function CustomizationAdmin() {
   };
   const removeCat = (c: string) => setCategories(categories.filter((x) => x !== c));
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     if (f.size > MAX_BACKUP_FILE_SIZE) {
@@ -56,17 +57,18 @@ export function CustomizationAdmin() {
       e.target.value = '';
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = importData(String(reader.result));
+    try {
+      const text = await readBackupFile(f);
+      const result = importData(text);
       if (result.ok) toast.success('Data restored');
       else toast.error(result.error || 'Invalid backup file');
-    };
-    reader.readAsText(f);
+    } catch (err: any) {
+      toast.error(err?.message || 'Could not read backup file');
+    }
     e.target.value = '';
   };
 
-  const handleTestImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTestImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     if (f.size > MAX_BACKUP_FILE_SIZE) {
@@ -75,12 +77,13 @@ export function CustomizationAdmin() {
       return;
     }
     setTestFileName(f.name);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const report = testImport(String(reader.result));
+    try {
+      const text = await readBackupFile(f);
+      const report = testImport(text);
       setTestReport(report);
-    };
-    reader.readAsText(f);
+    } catch (err: any) {
+      toast.error(err?.message || 'Could not read backup file');
+    }
     e.target.value = '';
   };
 
@@ -259,26 +262,29 @@ export function CustomizationAdmin() {
       <Card className="p-5">
         <h4 className="font-semibold mb-1">Backup & Restore</h4>
         <p className="text-xs text-muted-foreground mb-4">
-          Items, purchase orders, customers, vendors, invoices, settings နဲ့ image data အားလုံးကို JSON backup အဖြစ် သိမ်း/ပြန်တင်နိုင်ပါတယ်။
+          Items, purchase orders, customers, vendors, sales invoices, settings နဲ့ image data အားလုံးပါတဲ့ full backup ကို JSON ဒါမှမဟုတ် compressed (.json.gz) ဖိုင်အဖြစ် သိမ်းနိုင်ပါတယ်။
         </p>
         <div className="flex flex-wrap gap-2">
           <Button onClick={exportData} variant="outline">
-            <Download className="w-4 h-4 mr-1.5" /> Export Backup
+            <Download className="w-4 h-4 mr-1.5" /> Export JSON
+          </Button>
+          <Button onClick={() => exportDataCompressed().catch(() => toast.error('Compressed export failed'))} variant="outline">
+            <FileArchive className="w-4 h-4 mr-1.5" /> Export Compressed (.gz)
           </Button>
           <Button onClick={() => fileRef.current?.click()} variant="outline">
             <Upload className="w-4 h-4 mr-1.5" /> Import Backup
           </Button>
-          <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={handleImport} />
+          <input ref={fileRef} type="file" accept=".json,.gz,application/json,application/gzip" hidden onChange={handleImport} />
           <Button onClick={() => testFileRef.current?.click()} variant="secondary">
             <FlaskConical className="w-4 h-4 mr-1.5" /> Test Backup Import
           </Button>
-          <input ref={testFileRef} type="file" accept=".json,application/json" hidden onChange={handleTestImport} />
+          <input ref={testFileRef} type="file" accept=".json,.gz,application/json,application/gzip" hidden onChange={handleTestImport} />
           <Button onClick={resetAll} variant="destructive">
             <RotateCcw className="w-4 h-4 mr-1.5" /> Reset All Data
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-3">
-          <strong>Test Backup Import</strong> က file ကို စစ်ပြီး report ပြပေးပါမယ်။ Data တွေကို တကယ် overwrite မလုပ်ပါ။
+          <strong>Compressed backup</strong> က ပုံတွေပါတဲ့ ဖိုင်ကြီးတွေကို 5–10× ပိုသေးသွားစေပြီး Import လုပ်ရင်လည်း .json/.gz နှစ်မျိုးလုံး အလိုအလျောက် ဖတ်ပေးပါတယ်။
         </p>
       </Card>
 
