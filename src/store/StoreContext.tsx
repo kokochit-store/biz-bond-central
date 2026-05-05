@@ -9,7 +9,7 @@ import {
   DEFAULT_PASSWORD_SENTINEL, DEFAULT_PASSWORD_PLAINTEXT,
   type PasswordHash,
 } from '@/lib/crypto';
-import { createBackupPayload, parseBackupJson } from '@/lib/backup';
+import { compressJson, createBackupPayload, parseBackupJson } from '@/lib/backup';
 import { deleteLocalSnapshot, getLocalSnapshot, setLocalSnapshot } from '@/lib/localStoreDb';
 
 // Stored shape — password is ALWAYS a salted PBKDF2 hash, never plaintext.
@@ -74,6 +74,7 @@ interface StoreState {
   logoutAdmin: () => void;
 
   exportData: () => void;
+  exportDataCompressed: () => Promise<void>;
   importData: (json: string) => { ok: boolean; error?: string };
   testImport: (json: string) => {
     ok: boolean;
@@ -319,15 +320,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     logoutAdmin: () => setIsAdmin(false),
 
     exportData: () => {
-      // Backup payload deliberately EXCLUDES adminCreds — credentials must never
-      // travel in a JSON file that could be intercepted, shared, or reimported
-      // to overwrite another device's login.
       const data = createBackupPayload({ products, customers, vendors, purchases, ledger, invoices, settings, theme, prefs, categories });
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = `${settings.storeName.replace(/\s+/g, '-')}-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+    exportDataCompressed: async () => {
+      const data = createBackupPayload({ products, customers, vendors, purchases, ledger, invoices, settings, theme, prefs, categories });
+      const blob = await compressJson(JSON.stringify(data));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${settings.storeName.replace(/\s+/g, '-')}-backup-${new Date().toISOString().slice(0, 10)}.json.gz`;
       a.click();
       URL.revokeObjectURL(url);
     },
