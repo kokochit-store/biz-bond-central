@@ -167,3 +167,33 @@ export function parseBackupJson(json: string): BackupParseResult {
     meta: { exportedAt: maybeText(root.exportedAt || source.exportedAt), version: maybeText(root.version || source.version), format, bytes: json.length, ...images },
   };
 }
+// ---------- Compressed (.json.gz) backup helpers ----------
+// Uses native CompressionStream / DecompressionStream when available so we
+// don't pull in any extra runtime dependencies.
+
+function hasCompression() {
+  return typeof (globalThis as any).CompressionStream === 'function';
+}
+
+export async function compressJson(text: string): Promise<Blob> {
+  if (!hasCompression()) {
+    return new Blob([text], { type: 'application/json' });
+  }
+  const stream = new Blob([text]).stream().pipeThrough(new (globalThis as any).CompressionStream('gzip'));
+  const buf = await new Response(stream).arrayBuffer();
+  return new Blob([buf], { type: 'application/gzip' });
+}
+
+export async function readBackupFile(file: File): Promise<string> {
+  const buf = new Uint8Array(await file.arrayBuffer());
+  const isGzip = buf.length > 2 && buf[0] === 0x1f && buf[1] === 0x8b;
+  if (!isGzip) {
+    return new TextDecoder('utf-8').decode(buf);
+  }
+  if (!hasCompression()) {
+    throw new Error('This browser cannot read compressed (.gz) backups. Please use the JSON backup instead.');
+  }
+  const stream = new Blob([buf]).stream().pipeThrough(new (globalThis as any).DecompressionStream('gzip'));
+  const out = await new Response(stream).arrayBuffer();
+  return new TextDecoder('utf-8').decode(out);
+}
