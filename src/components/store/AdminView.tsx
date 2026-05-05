@@ -15,6 +15,7 @@ import { ProfitLossAdmin } from '@/components/admin/ProfitLossAdmin';
 import { SettingsAdmin } from '@/components/admin/SettingsAdmin';
 import { CustomizationAdmin } from '@/components/admin/CustomizationAdmin';
 import { DashboardAdmin } from '@/components/admin/DashboardAdmin';
+import { InvoicesAdmin } from '@/components/admin/InvoicesAdmin';
 
 export function AdminView() {
   const { isAdmin, loginAdmin, logoutAdmin, isDefaultAdminPassword } = useStore();
@@ -89,6 +90,7 @@ export function AdminView() {
       <Tabs defaultValue="dashboard" className="w-full">
         <TabsList className="w-full justify-start overflow-x-auto h-auto flex-wrap gap-1">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="invoices">Sales / ရောင်းအား</TabsTrigger>
           <TabsTrigger value="items">Items</TabsTrigger>
           <TabsTrigger value="customers">Customers</TabsTrigger>
           <TabsTrigger value="vendors">Vendors</TabsTrigger>
@@ -99,6 +101,7 @@ export function AdminView() {
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
         <TabsContent value="dashboard" className="mt-4"><DashboardAdmin /></TabsContent>
+        <TabsContent value="invoices" className="mt-4"><InvoicesAdmin /></TabsContent>
         <TabsContent value="items" className="mt-4"><ItemsAdmin /></TabsContent>
         <TabsContent value="customers" className="mt-4"><CustomersAdmin /></TabsContent>
         <TabsContent value="vendors" className="mt-4"><VendorsAdmin /></TabsContent>
