@@ -1,4 +1,4 @@
-import { Package, ShoppingCart, FileText, Shield, Store } from 'lucide-react';
+import { Package, ShoppingCart, Shield, Store } from 'lucide-react';
 import { ViewName } from '@/types';
 import { useStore } from '@/store/StoreContext';
 import { cn } from '@/lib/utils';
@@ -15,7 +15,6 @@ export function Sidebar({ view, onChange }: Props) {
   const items: { id: ViewName; label: string; icon: typeof Package }[] = [
     { id: 'overview', label: t.overview, icon: Store },
     { id: 'shop', label: t.shop, icon: Package },
-    { id: 'invoices', label: t.invoices, icon: FileText },
     { id: 'admin', label: t.admin, icon: Shield },
   ];
 
