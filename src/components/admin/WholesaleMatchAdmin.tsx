@@ -23,6 +23,8 @@ export function WholesaleMatchAdmin() {
   const [matches, setMatches] = useState<MatchedRow[]>([]);
   const [decisions, setDecisions] = useState<Record<number, RowDecision>>({});
   const [vendorName, setVendorName] = useState('');
+  const [hideUnmatched, setHideUnmatched] = useState(true);
+  const [selectMode, setSelectMode] = useState<'all' | 'manual'>('all');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
