@@ -23,6 +23,8 @@ export function WholesaleMatchAdmin() {
   const [matches, setMatches] = useState<MatchedRow[]>([]);
   const [decisions, setDecisions] = useState<Record<number, RowDecision>>({});
   const [vendorName, setVendorName] = useState('');
+  const [hideUnmatched, setHideUnmatched] = useState(true);
+  const [selectMode, setSelectMode] = useState<'all' | 'manual'>('all');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
@@ -36,7 +38,7 @@ export function WholesaleMatchAdmin() {
       const m = matchWholesaleRows(rows, products);
       setMatches(m);
       setFileName(file.name);
-      // initial decisions: select rows where matched AND cost changed
+      // initial decisions: select ALL matched rows by default
       const init: Record<number, RowDecision> = {};
       m.forEach((mr, idx) => {
         const cur = mr.product;
@@ -44,7 +46,7 @@ export function WholesaleMatchAdmin() {
         const newCost = mr.row.cost || cur?.cost || 0;
         const newPrice = cur ? Math.round(newCost * margin) : Math.round(newCost * 1.3);
         init[idx] = {
-          selected: !!cur && mr.row.cost > 0 && Math.abs(mr.costDiff) > 0.0001,
+          selected: !!cur,
           newCost,
           newPrice,
         };
@@ -52,6 +54,27 @@ export function WholesaleMatchAdmin() {
       setDecisions(init);
       const matched = m.filter((x) => x.product).length;
       toast.success(`Parsed ${rows.length} rows · matched ${matched} / unmatched ${rows.length - matched}`);
+
+      // Auto-generate PO for low-stock matched items
+      const lowStock = m.filter((mr) => mr.product && mr.product.stock < (mr.product.reorderLevel || 0));
+      if (lowStock.length) {
+        const vName = (vendorName.trim() || lowStock[0].row.name || 'Wholesale Vendor');
+        const po: PurchaseOrder = {
+          id: uid(),
+          vendorName: vName.slice(0, 200),
+          status: 'ordered',
+          orderDate: new Date().toISOString().slice(0, 10),
+          expectedDate: '',
+          lines: lowStock.map((mr) => {
+            const p = mr.product!;
+            const qty = Math.max(1, (p.reorderLevel || 1) * 2 - p.stock);
+            return { itemName: p.name, orderedQty: qty, receivedQty: 0, cost: mr.row.cost || p.cost };
+          }),
+          note: `Auto-generated (low-stock) from ${file.name}`,
+        };
+        upsertPurchase(po);
+        toast.success(`Auto PO created for ${lowStock.length} low-stock items`);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to parse file');
     } finally {
@@ -152,10 +175,45 @@ export function WholesaleMatchAdmin() {
       {matches.length > 0 && (
         <>
           <Card className="p-3 flex flex-wrap gap-3 items-center justify-between">
-            <div className="text-sm">
-              <strong>{matches.filter((m) => m.product).length}</strong> matched ·{' '}
-              <strong>{matches.filter((m) => !m.product).length}</strong> unmatched ·{' '}
-              <strong>{selectedRows.length}</strong> selected
+            <div className="text-sm flex flex-wrap items-center gap-2">
+              <span><strong>{matches.filter((m) => m.product).length}</strong> matched</span>
+              <span>· <strong>{matches.filter((m) => !m.product).length}</strong> unmatched</span>
+              <span>· <strong>{selectedRows.length}</strong> selected</span>
+              <Button
+                size="sm"
+                variant={hideUnmatched ? 'default' : 'outline'}
+                onClick={() => setHideUnmatched((v) => !v)}
+              >
+                {hideUnmatched ? 'Showing matched only' : 'Showing all'}
+              </Button>
+              <Button
+                size="sm"
+                variant={selectMode === 'all' ? 'default' : 'outline'}
+                onClick={() => {
+                  setSelectMode('all');
+                  setDecisions((d) => {
+                    const next = { ...d };
+                    matches.forEach((m, i) => { if (m.product && next[i]) next[i] = { ...next[i], selected: true }; });
+                    return next;
+                  });
+                }}
+              >
+                Select All
+              </Button>
+              <Button
+                size="sm"
+                variant={selectMode === 'manual' ? 'default' : 'outline'}
+                onClick={() => {
+                  setSelectMode('manual');
+                  setDecisions((d) => {
+                    const next = { ...d };
+                    matches.forEach((_, i) => { if (next[i]) next[i] = { ...next[i], selected: false }; });
+                    return next;
+                  });
+                }}
+              >
+                Manual Select
+              </Button>
             </div>
             <div className="flex flex-wrap gap-2 items-center">
               <Input
@@ -196,6 +254,7 @@ export function WholesaleMatchAdmin() {
                 {matches.map((m, idx) => {
                   const d = decisions[idx];
                   if (!d) return null;
+                  if (hideUnmatched && !m.product) return null;
                   const p = m.product;
                   const isLow = p && p.stock < (p.reorderLevel || 0);
                   return (
