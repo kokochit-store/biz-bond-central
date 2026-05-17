@@ -175,10 +175,45 @@ export function WholesaleMatchAdmin() {
       {matches.length > 0 && (
         <>
           <Card className="p-3 flex flex-wrap gap-3 items-center justify-between">
-            <div className="text-sm">
-              <strong>{matches.filter((m) => m.product).length}</strong> matched ·{' '}
-              <strong>{matches.filter((m) => !m.product).length}</strong> unmatched ·{' '}
-              <strong>{selectedRows.length}</strong> selected
+            <div className="text-sm flex flex-wrap items-center gap-2">
+              <span><strong>{matches.filter((m) => m.product).length}</strong> matched</span>
+              <span>· <strong>{matches.filter((m) => !m.product).length}</strong> unmatched</span>
+              <span>· <strong>{selectedRows.length}</strong> selected</span>
+              <Button
+                size="sm"
+                variant={hideUnmatched ? 'default' : 'outline'}
+                onClick={() => setHideUnmatched((v) => !v)}
+              >
+                {hideUnmatched ? 'Showing matched only' : 'Showing all'}
+              </Button>
+              <Button
+                size="sm"
+                variant={selectMode === 'all' ? 'default' : 'outline'}
+                onClick={() => {
+                  setSelectMode('all');
+                  setDecisions((d) => {
+                    const next = { ...d };
+                    matches.forEach((m, i) => { if (m.product && next[i]) next[i] = { ...next[i], selected: true }; });
+                    return next;
+                  });
+                }}
+              >
+                Select All
+              </Button>
+              <Button
+                size="sm"
+                variant={selectMode === 'manual' ? 'default' : 'outline'}
+                onClick={() => {
+                  setSelectMode('manual');
+                  setDecisions((d) => {
+                    const next = { ...d };
+                    matches.forEach((_, i) => { if (next[i]) next[i] = { ...next[i], selected: false }; });
+                    return next;
+                  });
+                }}
+              >
+                Manual Select
+              </Button>
             </div>
             <div className="flex flex-wrap gap-2 items-center">
               <Input
@@ -219,6 +254,7 @@ export function WholesaleMatchAdmin() {
                 {matches.map((m, idx) => {
                   const d = decisions[idx];
                   if (!d) return null;
+                  if (hideUnmatched && !m.product) return null;
                   const p = m.product;
                   const isLow = p && p.stock < (p.reorderLevel || 0);
                   return (
