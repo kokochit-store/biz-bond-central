@@ -58,7 +58,7 @@ export function WholesaleMatchAdmin() {
       // Auto-generate PO for low-stock matched items
       const lowStock = m.filter((mr) => mr.product && mr.product.stock < (mr.product.reorderLevel || 0));
       if (lowStock.length) {
-        const vName = (vendorName.trim() || lowStock[0].m?.row?.name || 'Wholesale Vendor');
+        const vName = (vendorName.trim() || lowStock[0].row.name || 'Wholesale Vendor');
         const po: PurchaseOrder = {
           id: uid(),
           vendorName: vName.slice(0, 200),
