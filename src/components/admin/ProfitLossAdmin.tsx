@@ -113,6 +113,13 @@ export function ProfitLossAdmin() {
             <Button size="sm" variant="outline" onClick={() => setRange(365)}>1y</Button>
             <Button
               size="sm"
+              variant="outline"
+              onClick={() => exportPnlCsv({ from, to, ...data })}
+            >
+              <Download className="w-3.5 h-3.5 mr-1" /> CSV
+            </Button>
+            <Button
+              size="sm"
               onClick={() => printHtml({
                 title: 'Profit & Loss',
                 bodyHtml: pnlHtml({ from, to, ...data }, settings, formatPrice),
