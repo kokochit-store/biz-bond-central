@@ -1,24 +1,37 @@
 import { useStore } from '@/store/StoreContext';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Printer, Receipt } from 'lucide-react';
+import { Trash2, Printer, Receipt, Download } from 'lucide-react';
+import { toast } from 'sonner';
 import { SortableList } from '@/components/SortableList';
 import { printHtml } from '@/lib/print';
 import { invoiceHtml, invoiceReceiptHtml } from '@/lib/printTemplates';
+import { exportInvoicesCsv } from '@/lib/csvExport';
 
 export function InvoicesView() {
   const { invoices, deleteInvoice, clearInvoices, reorderInvoices, formatPrice, settings } = useStore();
 
   return (
     <Card className="p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
         <div>
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Invoices</p>
           <h3 className="text-lg font-semibold">Saved Sales Invoices</h3>
         </div>
-        {invoices.length > 0 && (
-          <Button variant="outline" size="sm" onClick={clearInvoices}>Clear All</Button>
-        )}
+        <div className="flex gap-2">
+          {invoices.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { exportInvoicesCsv(invoices); toast.success(`Exported ${invoices.length} invoices`); }}
+            >
+              <Download className="w-3.5 h-3.5 mr-1" /> Export CSV
+            </Button>
+          )}
+          {invoices.length > 0 && (
+            <Button variant="outline" size="sm" onClick={clearInvoices}>Clear All</Button>
+          )}
+        </div>
       </div>
 
       {invoices.length === 0 ? (
