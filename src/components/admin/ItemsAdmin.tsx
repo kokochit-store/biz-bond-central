@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Pencil, Trash2, Upload, FileDown, Printer, Download, Copy } from 'lucide-react';
+import { Pencil, Trash2, Upload, Printer, Download, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarcodeInput } from '@/components/BarcodeInput';
 import { SortableList } from '@/components/SortableList';
@@ -112,18 +112,6 @@ export function ItemsAdmin() {
     }
   };
 
-  const loadSample = async () => {
-    setImporting(true);
-    try {
-      const res = await fetch('/sample-items.csv');
-      if (!res.ok) throw new Error('Sample file not found');
-      const blob = await res.blob();
-      await handleCsv(new File([blob], 'sample-items.csv', { type: 'text/csv' }));
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to load sample');
-      setImporting(false);
-    }
-  };
 
   const set = <K extends keyof Product>(k: K, v: Product[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -209,17 +197,6 @@ export function ItemsAdmin() {
             >
               <Upload className="w-3.5 h-3.5 mr-1" />
               {importing ? 'Importing…' : 'Import CSV'}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={importing}
-              onClick={loadSample}
-              title="Load bundled 3,952 sample items"
-            >
-              <FileDown className="w-3.5 h-3.5 mr-1" />
-              Load Sample (3,952)
             </Button>
             <Button
               type="button"
