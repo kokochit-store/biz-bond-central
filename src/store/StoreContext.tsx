@@ -90,21 +90,12 @@ interface StoreState {
 
 const STORAGE_KEY = 'pt-store-v2';
 
-const seedProducts: Product[] = [
-  { id: 'p1', name: 'Cordless Drill 18V', category: 'Power Tools', price: 185000, cost: 140000, stock: 8, reorderLevel: 3, badge: 'NEW', location: 'Shelf A-1', description: 'Heavy duty cordless drill with 2 batteries.' },
-  { id: 'p2', name: 'Hammer 16oz', category: 'Hand Tools', price: 12000, cost: 7500, stock: 24, reorderLevel: 5, location: 'Shelf B-2', description: 'Steel claw hammer with rubber grip.' },
-  { id: 'p3', name: 'PVC Pipe 1/2"', category: 'Plumbing', price: 4500, cost: 2800, stock: 60, reorderLevel: 20, location: 'Store Room', description: 'Standard PVC water pipe (per meter).' },
-  { id: 'p4', name: 'LED Bulb 12W', category: 'Electrical', price: 3500, cost: 2000, stock: 120, reorderLevel: 30, location: 'Shelf C-3', description: 'Energy saving LED bulb, warm white.' },
-  { id: 'p5', name: 'Paint Brush 3"', category: 'Paint', price: 2500, cost: 1300, stock: 4, reorderLevel: 10, badge: 'LOW', location: 'Shelf D-1', description: 'Soft bristle paint brush.' },
-  { id: 'p6', name: 'Steel Nails 3"', category: 'Hardware', price: 800, cost: 500, stock: 200, reorderLevel: 50, location: 'Drawer 4', description: 'Per kg, galvanized.' },
-];
-
 const DEFAULT_CATEGORIES = ['Power Tools', 'Hand Tools', 'Plumbing', 'Electrical', 'Paint', 'Hardware', 'Accessories'];
 
 const defaultState = {
-  products: seedProducts,
+  products: [] as Product[],
   customers: [] as Customer[],
-  vendors: [{ id: 'v1', name: 'Mandalay Tool Supply', phone: '09111222333', note: 'Power tools wholesaler' }] as Vendor[],
+  vendors: [] as Vendor[],
   purchases: [] as PurchaseOrder[],
   ledger: [] as LedgerEntry[],
   invoices: [] as Invoice[],
