@@ -225,6 +225,30 @@ export function ItemsAdmin() {
               type="button"
               variant="outline"
               size="sm"
+              onClick={() => { exportItemsCsv(products); toast.success(`Exported ${products.length} items`); }}
+              disabled={products.length === 0}
+            >
+              <Download className="w-3.5 h-3.5 mr-1" /> Export CSV
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const groups = findDuplicateItems(products);
+                if (!groups.length) return toast.info('No duplicates found');
+                exportDuplicateItemsCsv(products);
+                toast.success(`Exported ${groups.length} duplicate groups`);
+              }}
+              disabled={products.length === 0}
+              title="Export items with same barcode or same name"
+            >
+              <Copy className="w-3.5 h-3.5 mr-1" /> Duplicates CSV
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={() => printHtml({
                 title: 'Items List',
                 bodyHtml: itemsHtml(filtered.length ? filtered : products, settings, formatPrice),
