@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Pencil, Trash2, Upload, FileDown, Printer } from 'lucide-react';
+import { Pencil, Trash2, Upload, FileDown, Printer, Download, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarcodeInput } from '@/components/BarcodeInput';
 import { SortableList } from '@/components/SortableList';
@@ -13,6 +13,7 @@ import { ImageUpload } from '@/components/ImageUpload';
 import { parseCsv, mapCsvToProducts } from '@/lib/csvImport';
 import { printHtml } from '@/lib/print';
 import { itemsHtml } from '@/lib/printTemplates';
+import { exportItemsCsv, exportDuplicateItemsCsv, findDuplicateItems } from '@/lib/csvExport';
 
 const empty: Product = {
   id: '', name: '', category: '', price: 0, cost: 0, stock: 0, reorderLevel: 0,
@@ -219,6 +220,30 @@ export function ItemsAdmin() {
             >
               <FileDown className="w-3.5 h-3.5 mr-1" />
               Load Sample (3,952)
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => { exportItemsCsv(products); toast.success(`Exported ${products.length} items`); }}
+              disabled={products.length === 0}
+            >
+              <Download className="w-3.5 h-3.5 mr-1" /> Export CSV
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const groups = findDuplicateItems(products);
+                if (!groups.length) return toast.info('No duplicates found');
+                exportDuplicateItemsCsv(products);
+                toast.success(`Exported ${groups.length} duplicate groups`);
+              }}
+              disabled={products.length === 0}
+              title="Export items with same barcode or same name"
+            >
+              <Copy className="w-3.5 h-3.5 mr-1" /> Duplicates CSV
             </Button>
             <Button
               type="button"

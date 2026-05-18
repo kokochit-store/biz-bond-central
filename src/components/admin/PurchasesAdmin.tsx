@@ -5,13 +5,14 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Pencil, ScanLine, Upload, Printer } from 'lucide-react';
+import { Plus, Trash2, Pencil, ScanLine, Upload, Printer, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarcodeScannerModal } from '@/components/BarcodeScannerModal';
 import { SortableList } from '@/components/SortableList';
 import { mapCsvToPurchases } from '@/lib/csvSimple';
 import { printHtml } from '@/lib/print';
 import { purchaseHtml } from '@/lib/printTemplates';
+import { exportPurchasesCsv } from '@/lib/csvExport';
 
 const empty: PurchaseOrder = {
   id: '', vendorName: '', status: 'ordered', orderDate: new Date().toISOString().slice(0, 10),
@@ -175,6 +176,16 @@ export function PurchasesAdmin() {
             >
               <Upload className="w-3.5 h-3.5 mr-1" />
               {importing ? 'Importing…' : 'Import CSV'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="ml-2"
+              disabled={purchases.length === 0}
+              onClick={() => { exportPurchasesCsv(purchases); toast.success(`Exported ${purchases.length} POs`); }}
+            >
+              <Download className="w-3.5 h-3.5 mr-1" /> Export CSV
             </Button>
           </div>
         </div>

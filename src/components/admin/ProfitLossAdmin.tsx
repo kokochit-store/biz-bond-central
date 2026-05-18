@@ -3,9 +3,10 @@ import { useStore } from '@/store/StoreContext';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, DollarSign, Package, Printer } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Package, Printer, Download } from 'lucide-react';
 import { printHtml } from '@/lib/print';
 import { pnlHtml } from '@/lib/printTemplates';
+import { exportPnlCsv } from '@/lib/csvExport';
 
 function startOfMonth() {
   const d = new Date();
@@ -110,6 +111,13 @@ export function ProfitLossAdmin() {
             <Button size="sm" variant="outline" onClick={() => setRange(30)}>30d</Button>
             <Button size="sm" variant="outline" onClick={() => setRange(90)}>90d</Button>
             <Button size="sm" variant="outline" onClick={() => setRange(365)}>1y</Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => exportPnlCsv({ from, to, ...data })}
+            >
+              <Download className="w-3.5 h-3.5 mr-1" /> CSV
+            </Button>
             <Button
               size="sm"
               onClick={() => printHtml({

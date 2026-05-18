@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, Printer } from 'lucide-react';
+import { Pencil, Trash2, Printer, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { SortableList } from '@/components/SortableList';
 import { printHtml } from '@/lib/print';
 import { ledgerHtml } from '@/lib/printTemplates';
+import { exportLedgerCsv } from '@/lib/csvExport';
 
 const empty: LedgerEntry = { id: '', type: 'receivable', name: '', vendorId: '', amount: 0, dueDate: '', note: '' };
 
@@ -91,7 +92,18 @@ export function LedgerAdmin() {
       </Card>
 
       <Card className="p-4">
-        <h4 className="font-semibold mb-3">Entries ({ledger.length})</h4>
+        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+          <h4 className="font-semibold">Entries ({ledger.length})</h4>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={ledger.length === 0}
+            onClick={() => { exportLedgerCsv(ledger); toast.success(`Exported ${ledger.length} entries`); }}
+          >
+            <Download className="w-3.5 h-3.5 mr-1" /> Export CSV
+          </Button>
+        </div>
         {ledger.length === 0 ? (
           <p className="text-sm text-muted-foreground">No ledger entries.</p>
         ) : (
