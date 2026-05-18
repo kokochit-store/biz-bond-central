@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, Printer } from 'lucide-react';
+import { Pencil, Trash2, Printer, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { SortableList } from '@/components/SortableList';
 import { printHtml } from '@/lib/print';
 import { ledgerHtml } from '@/lib/printTemplates';
+import { exportLedgerCsv } from '@/lib/csvExport';
 
 const empty: LedgerEntry = { id: '', type: 'receivable', name: '', vendorId: '', amount: 0, dueDate: '', note: '' };
 
