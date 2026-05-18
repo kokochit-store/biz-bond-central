@@ -177,6 +177,16 @@ export function PurchasesAdmin() {
               <Upload className="w-3.5 h-3.5 mr-1" />
               {importing ? 'Importing…' : 'Import CSV'}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="ml-2"
+              disabled={purchases.length === 0}
+              onClick={() => { exportPurchasesCsv(purchases); toast.success(`Exported ${purchases.length} POs`); }}
+            >
+              <Download className="w-3.5 h-3.5 mr-1" /> Export CSV
+            </Button>
           </div>
         </div>
         {purchases.length === 0 ? (
