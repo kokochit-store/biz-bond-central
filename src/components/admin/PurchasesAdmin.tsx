@@ -65,8 +65,74 @@ export function PurchasesAdmin() {
 
   const totalAmount = (po: PurchaseOrder) => po.lines.reduce((s, l) => s + l.orderedQty * l.cost, 0);
 
+  // ---- Low Stock grouped by vendor ----
+  const lowByVendor = useMemo(() => {
+    const groups = new Map<string, { vendorName: string; items: typeof products }>();
+    for (const p of products) {
+      if (p.stock < (p.reorderLevel || 0)) {
+        const v = vendors.find((x) => x.id === p.vendorId);
+        const key = v?.name || 'Unassigned';
+        if (!groups.has(key)) groups.set(key, { vendorName: key, items: [] });
+        groups.get(key)!.items.push(p);
+      }
+    }
+    return Array.from(groups.values()).sort((a, b) => a.vendorName.localeCompare(b.vendorName));
+  }, [products, vendors]);
+
+  const autoPoForVendor = (vendorName: string, items: typeof products) => {
+    const lines: PurchaseLine[] = items.map((p) => ({
+      itemName: p.name,
+      orderedQty: Math.max((p.reorderLevel || 0) * 2 - p.stock, 1),
+      receivedQty: 0,
+      cost: p.cost,
+    }));
+    upsertPurchase({
+      id: uid(),
+      vendorName,
+      status: 'ordered',
+      orderDate: new Date().toISOString().slice(0, 10),
+      lines,
+      note: `Auto-generated from low stock (${items.length} items)`,
+    });
+    toast.success(`PO created for ${vendorName} · ${items.length} items`);
+  };
+
+  const autoPoAll = () => {
+    if (!lowByVendor.length) return toast.info('No low-stock items');
+    lowByVendor.forEach((g) => autoPoForVendor(g.vendorName, g.items));
+  };
+
   return (
     <div className="space-y-4">
+      {lowByVendor.length > 0 && (
+        <Card className="p-4 border-amber-500/40 bg-amber-500/5">
+          <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <h4 className="font-semibold">Low Stock by Vendor ({lowByVendor.reduce((s, g) => s + g.items.length, 0)} items)</h4>
+            </div>
+            <Button size="sm" onClick={autoPoAll}>
+              <Wand2 className="w-3.5 h-3.5 mr-1" /> Auto PO for All Vendors
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {lowByVendor.map((g) => (
+              <div key={g.vendorName} className="p-2 rounded bg-background border">
+                <div className="flex items-center justify-between mb-1 gap-2">
+                  <p className="text-sm font-medium">{g.vendorName} <span className="text-muted-foreground">· {g.items.length} item(s)</span></p>
+                  <Button size="sm" variant="outline" onClick={() => autoPoForVendor(g.vendorName, g.items)}>
+                    <Wand2 className="w-3 h-3 mr-1" /> Auto PO
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground truncate">
+                  {g.items.map((p) => `${p.name} (${p.stock}/${p.reorderLevel})`).join(' · ')}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       <Card className="p-4">
         <h4 className="font-semibold mb-3">{form.id ? 'Edit Purchase Order' : 'New Purchase Order'}</h4>
         <form onSubmit={submit} className="space-y-3">
