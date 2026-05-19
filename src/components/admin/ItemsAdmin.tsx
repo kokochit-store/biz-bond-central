@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Pencil, Trash2, Upload, Printer, Download, Copy } from 'lucide-react';
+import { Pencil, Trash2, Upload, Printer, Download, Copy, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarcodeInput } from '@/components/BarcodeInput';
 import { SortableList } from '@/components/SortableList';
@@ -232,6 +232,19 @@ export function ItemsAdmin() {
               })}
             >
               <Printer className="w-3.5 h-3.5 mr-1" /> Print
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={products.length === 0}
+              onClick={() => {
+                if (!confirm(`Delete all ${products.length} items? This cannot be undone.`)) return;
+                setProducts([]);
+                toast.success('All items deleted');
+              }}
+            >
+              <XCircle className="w-3.5 h-3.5 mr-1" /> Delete All
             </Button>
             <Input
               placeholder="Search items..."
