@@ -17,6 +17,7 @@ import { CustomizationAdmin } from '@/components/admin/CustomizationAdmin';
 import { DashboardAdmin } from '@/components/admin/DashboardAdmin';
 import { InvoicesAdmin } from '@/components/admin/InvoicesAdmin';
 import { WholesaleMatchAdmin } from '@/components/admin/WholesaleMatchAdmin';
+import { QuickBooksAdmin } from '@/components/admin/QuickBooksAdmin';
 
 export function AdminView() {
   const { isAdmin, loginAdmin, logoutAdmin, isDefaultAdminPassword } = useStore();
