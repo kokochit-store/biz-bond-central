@@ -85,18 +85,21 @@ export async function parseWholesaleFile(file: File): Promise<WholesaleRow[]> {
     const text = await file.text();
     return rowsToWholesale(parseCsv(text));
   }
-  if (ext === 'xlsx' || ext === 'xls' || ext === 'xlsm' || ext === 'ods') {
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type: 'array' });
+  if (ext === 'xlsx' || ext === 'xlsm') {
+    // Read all sheets; return the first one that yields wholesale rows.
+    const sheets = await (readXlsxFile as any)(file, { getSheets: true }) as { name: string }[];
     let all: string[][] = [];
-    for (const sheetName of wb.SheetNames) {
-      const sheet = wb.Sheets[sheetName];
-      const aoa = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false, defval: '' });
-      const rows = rowsToWholesale(aoa as string[][]);
-      if (rows.length) return rows; // first sheet with data
-      all = all.concat(aoa as string[][]);
+    for (let i = 0; i < sheets.length; i++) {
+      const data = await readXlsxFile(file, { sheet: i + 1 });
+      const aoa = (data as any[][]).map((r) => r.map((c) => (c == null ? '' : String(c))));
+      const rows = rowsToWholesale(aoa);
+      if (rows.length) return rows;
+      all = all.concat(aoa);
     }
     return rowsToWholesale(all);
+  }
+  if (ext === 'xls' || ext === 'ods') {
+    throw new Error('Legacy .xls / .ods not supported — please save as .xlsx');
   }
   if (ext === 'pdf') {
     return parsePdfFile(file);
