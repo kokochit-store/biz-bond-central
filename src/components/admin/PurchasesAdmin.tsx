@@ -1,11 +1,11 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useStore, uid } from '@/store/StoreContext';
 import { PurchaseOrder, PurchaseLine } from '@/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Pencil, ScanLine, Upload, Printer, Download } from 'lucide-react';
+import { Plus, Trash2, Pencil, ScanLine, Upload, Printer, Download, AlertTriangle, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarcodeScannerModal } from '@/components/BarcodeScannerModal';
 import { SortableList } from '@/components/SortableList';
