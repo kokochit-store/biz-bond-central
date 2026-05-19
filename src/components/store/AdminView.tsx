@@ -98,6 +98,7 @@ export function AdminView() {
           <TabsTrigger value="vendors">Vendors</TabsTrigger>
           <TabsTrigger value="purchases">Purchases</TabsTrigger>
           <TabsTrigger value="wholesale">Wholesale Match</TabsTrigger>
+          <TabsTrigger value="quickbooks">QuickBooks</TabsTrigger>
           <TabsTrigger value="ledger">Ledger</TabsTrigger>
           <TabsTrigger value="pl">P & L</TabsTrigger>
           <TabsTrigger value="customize">Customize</TabsTrigger>
