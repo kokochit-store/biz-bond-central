@@ -17,6 +17,7 @@ import { CustomizationAdmin } from '@/components/admin/CustomizationAdmin';
 import { DashboardAdmin } from '@/components/admin/DashboardAdmin';
 import { InvoicesAdmin } from '@/components/admin/InvoicesAdmin';
 import { WholesaleMatchAdmin } from '@/components/admin/WholesaleMatchAdmin';
+import { QuickBooksAdmin } from '@/components/admin/QuickBooksAdmin';
 
 export function AdminView() {
   const { isAdmin, loginAdmin, logoutAdmin, isDefaultAdminPassword } = useStore();
@@ -97,6 +98,7 @@ export function AdminView() {
           <TabsTrigger value="vendors">Vendors</TabsTrigger>
           <TabsTrigger value="purchases">Purchases</TabsTrigger>
           <TabsTrigger value="wholesale">Wholesale Match</TabsTrigger>
+          <TabsTrigger value="quickbooks">QuickBooks</TabsTrigger>
           <TabsTrigger value="ledger">Ledger</TabsTrigger>
           <TabsTrigger value="pl">P & L</TabsTrigger>
           <TabsTrigger value="customize">Customize</TabsTrigger>
@@ -109,6 +111,7 @@ export function AdminView() {
         <TabsContent value="vendors" className="mt-4"><VendorsAdmin /></TabsContent>
         <TabsContent value="purchases" className="mt-4"><PurchasesAdmin /></TabsContent>
         <TabsContent value="wholesale" className="mt-4"><WholesaleMatchAdmin /></TabsContent>
+        <TabsContent value="quickbooks" className="mt-4"><QuickBooksAdmin /></TabsContent>
         <TabsContent value="ledger" className="mt-4"><LedgerAdmin /></TabsContent>
         <TabsContent value="pl" className="mt-4"><ProfitLossAdmin /></TabsContent>
         <TabsContent value="customize" className="mt-4"><CustomizationAdmin /></TabsContent>
