@@ -2,7 +2,7 @@
 // Reads CSV / XLSX / PDF, extracts rows with { model, barcode, name, cost },
 // matches them against existing Products by barcode → name → description (fuzzy).
 
-import readXlsxFile from 'read-excel-file';
+import readXlsxFile from 'read-excel-file/browser';
 import { Product } from '@/types';
 import { parseCsv } from './csvImport';
 
