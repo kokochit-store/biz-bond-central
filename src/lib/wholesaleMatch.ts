@@ -90,8 +90,8 @@ export async function parseWholesaleFile(file: File): Promise<WholesaleRow[]> {
     const sheets = await (readXlsxFile as any)(file, { getSheets: true }) as { name: string }[];
     let all: string[][] = [];
     for (let i = 0; i < sheets.length; i++) {
-      const data = await readXlsxFile(file, { sheet: i + 1 });
-      const aoa = (data as any[][]).map((r) => r.map((c) => (c == null ? '' : String(c))));
+      const data = await (readXlsxFile as any)(file, { sheet: i + 1 });
+      const aoa = (data as any[]).map((r: any[]) => r.map((c) => (c == null ? '' : String(c))));
       const rows = rowsToWholesale(aoa);
       if (rows.length) return rows;
       all = all.concat(aoa);
