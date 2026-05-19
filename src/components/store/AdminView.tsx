@@ -111,6 +111,7 @@ export function AdminView() {
         <TabsContent value="vendors" className="mt-4"><VendorsAdmin /></TabsContent>
         <TabsContent value="purchases" className="mt-4"><PurchasesAdmin /></TabsContent>
         <TabsContent value="wholesale" className="mt-4"><WholesaleMatchAdmin /></TabsContent>
+        <TabsContent value="quickbooks" className="mt-4"><QuickBooksAdmin /></TabsContent>
         <TabsContent value="ledger" className="mt-4"><LedgerAdmin /></TabsContent>
         <TabsContent value="pl" className="mt-4"><ProfitLossAdmin /></TabsContent>
         <TabsContent value="customize" className="mt-4"><CustomizationAdmin /></TabsContent>
