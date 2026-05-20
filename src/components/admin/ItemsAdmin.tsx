@@ -29,6 +29,7 @@ export function ItemsAdmin() {
   } = useStore();
   const [form, setForm] = useState<Product>(empty);
   const [search, setSearch] = useState('');
+  const [imageFilter, setImageFilter] = useState<'all' | 'with' | 'without'>('all');
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -126,7 +127,12 @@ export function ItemsAdmin() {
     setForm(empty);
   };
 
+  const withImageCount = products.filter((p) => !!p.imageUrl).length;
+  const withoutImageCount = products.length - withImageCount;
+
   const filtered = products.filter((p) => {
+    if (imageFilter === 'with' && !p.imageUrl) return false;
+    if (imageFilter === 'without' && p.imageUrl) return false;
     const q = search.toLowerCase();
     return !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || (p.location || '').toLowerCase().includes(q);
   });
@@ -254,9 +260,37 @@ export function ItemsAdmin() {
             />
           </div>
         </div>
-        {search ? (
+        <div className="flex flex-wrap gap-2 mb-3">
+          <Button
+            type="button"
+            size="sm"
+            variant={imageFilter === 'all' ? 'default' : 'outline'}
+            onClick={() => setImageFilter('all')}
+          >
+            All ({products.length})
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={imageFilter === 'with' ? 'default' : 'outline'}
+            onClick={() => setImageFilter('with')}
+          >
+            With Photo ({withImageCount})
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={imageFilter === 'without' ? 'default' : 'outline'}
+            onClick={() => setImageFilter('without')}
+          >
+            No Photo ({withoutImageCount})
+          </Button>
+        </div>
+        {search || imageFilter !== 'all' ? (
           <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
-            {filtered.map((p) => (
+            {filtered.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No items match this filter.</p>
+            ) : filtered.map((p) => (
               <ItemRow key={p.id} p={p} formatPrice={formatPrice} onEdit={setForm} onDelete={deleteProduct} />
             ))}
           </div>
