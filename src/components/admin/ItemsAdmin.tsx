@@ -260,9 +260,37 @@ export function ItemsAdmin() {
             />
           </div>
         </div>
-        {search ? (
+        <div className="flex flex-wrap gap-2 mb-3">
+          <Button
+            type="button"
+            size="sm"
+            variant={imageFilter === 'all' ? 'default' : 'outline'}
+            onClick={() => setImageFilter('all')}
+          >
+            All ({products.length})
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={imageFilter === 'with' ? 'default' : 'outline'}
+            onClick={() => setImageFilter('with')}
+          >
+            With Photo ({withImageCount})
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={imageFilter === 'without' ? 'default' : 'outline'}
+            onClick={() => setImageFilter('without')}
+          >
+            No Photo ({withoutImageCount})
+          </Button>
+        </div>
+        {search || imageFilter !== 'all' ? (
           <div className="space-y-2 max-h-96 overflow-y-auto scrollbar-thin">
-            {filtered.map((p) => (
+            {filtered.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">No items match this filter.</p>
+            ) : filtered.map((p) => (
               <ItemRow key={p.id} p={p} formatPrice={formatPrice} onEdit={setForm} onDelete={deleteProduct} />
             ))}
           </div>
