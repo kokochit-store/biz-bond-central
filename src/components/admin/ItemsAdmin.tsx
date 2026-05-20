@@ -127,7 +127,12 @@ export function ItemsAdmin() {
     setForm(empty);
   };
 
+  const withImageCount = products.filter((p) => !!p.imageUrl).length;
+  const withoutImageCount = products.length - withImageCount;
+
   const filtered = products.filter((p) => {
+    if (imageFilter === 'with' && !p.imageUrl) return false;
+    if (imageFilter === 'without' && p.imageUrl) return false;
     const q = search.toLowerCase();
     return !q || p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q) || (p.location || '').toLowerCase().includes(q);
   });
