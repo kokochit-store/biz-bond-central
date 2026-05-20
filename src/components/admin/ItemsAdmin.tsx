@@ -29,6 +29,7 @@ export function ItemsAdmin() {
   } = useStore();
   const [form, setForm] = useState<Product>(empty);
   const [search, setSearch] = useState('');
+  const [imageFilter, setImageFilter] = useState<'all' | 'with' | 'without'>('all');
   const [importing, setImporting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
